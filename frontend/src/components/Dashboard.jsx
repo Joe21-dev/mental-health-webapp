@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [healthData, setHealthData] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +35,12 @@ const Dashboard = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/health')
+      .then(res => res.json())
+      .then(data => setHealthData(data));
   }, []);
 
   // Desktop Component
@@ -332,6 +339,18 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Example health data display */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-2">Health Records</h2>
+        <ul>
+          {healthData.map(record => (
+            <li key={record._id} className="mb-2 text-sm text-gray-700">
+              {record.type}: {JSON.stringify(record.value)} ({new Date(record.date).toLocaleDateString()})
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

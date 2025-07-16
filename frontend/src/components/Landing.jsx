@@ -25,6 +25,7 @@ const Animations = () => (
 const Landing = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [healthData, setHealthData] = useState([]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +33,12 @@ const Landing = () => {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/health')
+      .then(res => res.json())
+      .then(data => setHealthData(data));
   }, []);
 
   return (
@@ -188,6 +195,17 @@ const Landing = () => {
               <ArrowRight className="ml-2 w-4 h-4" />
             </button>
           </div>
+        </div>
+        {/* Example health data display */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-2">Health Records</h2>
+          <ul>
+            {healthData.map(record => (
+              <li key={record._id} className="mb-2 text-sm text-gray-700">
+                {record.type}: {JSON.stringify(record.value)} ({new Date(record.date).toLocaleDateString()})
+              </li>
+            ))}
+          </ul>
         </div>
       </main>
     </div>
