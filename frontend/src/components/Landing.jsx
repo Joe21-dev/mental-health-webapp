@@ -50,11 +50,12 @@ const Landing = () => {
           <div className="flex justify-between items-center h-16 animate-slideUp">
             {/* Logo */}
             <div className="flex items-center animate-scaleIn">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => window.location.pathname = '/'}>
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 bg-white rounded-full"></div>
+                  {/* Replace white dot with Brain icon */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 7a5 5 0 0 0-10 0v10a5 5 0 0 0 10 0V7z" /><path d="M12 2v20" /></svg>
                 </div>
-                <span className="text-xl font-semibold text-gray-900">Solomaze.</span>
+                <span className="text-xl font-semibold text-gray-900">Siha.</span>
               </div>
             </div>
             {/* Desktop Navigation */}
@@ -83,9 +84,9 @@ const Landing = () => {
             </div>
             {/* Login Button */}
             <div className="hidden md:flex items-center animate-scaleIn">
-              <button className="px-5 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold shadow-md hover:from-pink-500 hover:to-purple-500 transition-colors">
-                Login
-              </button>
+              <Link to="/signup" className="px-5 py-2 bg-black text-white rounded-full font-semibold shadow-md hover:bg-gray-800 transition-colors text-center" style={{textAlign: 'center', minWidth: '110px'}}>
+                Sign Up
+              </Link>
             </div>
             {/* Mobile menu button */}
             <div className="md:hidden animate-scaleIn">
@@ -123,9 +124,9 @@ const Landing = () => {
                   </Link>
                 )
               ))}
-              <button className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold shadow-md hover:from-pink-500 hover:to-purple-500 transition-colors mt-2 animate-scaleIn">
-                Login
-              </button>
+              <Link to="/signup" className="w-full block px-3 py-2 bg-black text-white rounded-full font-semibold shadow-md hover:bg-gray-800 transition-colors mt-2 animate-scaleIn text-center">
+                Sign Up
+              </Link>
             </div>
           </div>
         )}
@@ -147,13 +148,13 @@ const Landing = () => {
                 </p>
                 {/* CTA Buttons */}
                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 animate-fadeIn w-full">
-                  <button className="bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors shadow-lg scale-100 hover:scale-105 active:scale-95 duration-300 animate-scaleIn w-full sm:w-auto text-sm xs:text-base">
-                    Request Demo
-                  </button>
+                  <Link to="/signup" className="bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors shadow-lg scale-100 hover:scale-105 active:scale-95 duration-300 animate-scaleIn w-full sm:w-auto text-sm xs:text-base text-center" style={{textAlign: 'center'}}>
+                    Sign Up
+                  </Link>
                   <div className="flex items-center space-x-2 animate-fadeIn">
-                    <span className="text-xs xs:text-sm text-gray-600">Approved by</span>
+                    <span className="text-xs xs:text-sm text-gray-600">Brought to you by</span>
                     <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs xs:text-sm font-medium shadow-md">
-                      NHS
+                      21-dev
                     </div>
                   </div>
                 </div>
