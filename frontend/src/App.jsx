@@ -5,9 +5,9 @@ import Dashboard from './components/Dashboard';
 import Chat from './pages/Chat';
 import Therapists from './pages/Therapists';
 import TherapistsMobile from './pages/TherapistsMobile';
-import SignUpForm from './pages/Signup';
-import Scheduler from './pages/Scheduler';
+import Signup from './pages/Signup';
 import { ResourcesRouteWrapper } from './ResourcesRouteWrapper';
+import Scheduler from './pages/Scheduler';
 import './App.css';
 
 function useIsMobile() {
@@ -25,17 +25,20 @@ function useIsMobile() {
 function App() {
   const isMobile = useIsMobile();
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/platform" element={<Dashboard />} />
-        <Route path="/signup" element={<SignUpForm />} />
-        <Route path="/platform/therapists" element={isMobile ? <TherapistsMobile /> : <Therapists />} />
-        <Route path="/platform/ai-doctor" element={<Chat />} />
-        <Route path="/platform/scheduler" element={<Scheduler />} />
-        <Route path="/platform/resources" element={<ResourcesRouteWrapper />} />
-      </Routes>
-    </Router>
+    
+      <Router>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path='/signup' element={<Signup />} />
+          <Route path="/platform" element={<Dashboard />} />
+          <Route path="/platform/therapists" element={isMobile ? <TherapistsMobile /> : <Therapists />} />
+          <Route path="/platform/chat" element={<Chat />} />
+          <Route path="/platform/resources" element={<ResourcesRouteWrapper />} />
+          <Route path="/platform/scheduler" element={<Scheduler />} />
+          {/* Add other /platform/... routes as needed */}
+        </Routes>
+      </Router>
+    
   );
 }
 

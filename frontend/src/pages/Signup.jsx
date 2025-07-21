@@ -2,32 +2,82 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const SignUpForm = () => {
+const API_URL = 'http://localhost:4001';
+
+const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: ''
   });
-  
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (!showLogin) {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    } else {
+      setLoginData(prev => ({ ...prev, [name]: value }));
+    }
   };
-  
-  const handleSubmit = (e) => {
+
+  // Signup handler
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setError(''); setSuccess(''); setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      setSuccess(data.message || 'Signup successful! You can now log in.');
+      setFormData({ name: '', email: '', password: '' });
+      setShowLogin(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
+  // Login handler
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError(''); setSuccess(''); setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginData.email, password: loginData.password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      setSuccess(data.message || 'Login successful!');
+      // Store token in localStorage (or context)
+      localStorage.setItem('token', data.token);
+      // Redirect or update UI as needed
+      window.location.href = '/platform';
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isPasswordValid = formData.password.length >= 8;
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
-  
+
   return (
     <div className="flex min-h-screen overflow-hidden bg-gray-50">
       {/* Left side - Image (hidden on mobile) */}
@@ -40,11 +90,11 @@ const SignUpForm = () => {
         />
       </div>
       {/* Right side - Form */}
-      <div className="flex items-center justify-center w-full px-4 py-8 lg:w-1/2 sm:py-12 sm:px-6 lg:p-8 min-h-screen">
-        <div className="w-full max-w-md mx-auto relative flex flex-col justify-center items-center">
+      <div className="flex items-center justify-center w-full min-h-screen px-4 py-8 lg:w-1/2 sm:py-12 sm:px-6 lg:p-8">
+        <div className="relative flex flex-col items-center justify-center w-full max-w-md mx-auto">
           {/* X Icon to close and go home */}
           <button
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 cursor-pointer z-20"
+            className="absolute z-20 text-gray-400 cursor-pointer top-2 right-2 hover:text-gray-700"
             onClick={() => window.location.href = 'http://localhost:5173/' }
             aria-label="Close"
             type="button"
@@ -69,9 +119,12 @@ const SignUpForm = () => {
                 Login
               </button>
             </div>
+            {/* Show error/success messages */}
+            {error && <div className="w-full px-3 py-2 mb-2 text-sm text-red-600 bg-red-100 rounded">{error}</div>}
+            {success && <div className="w-full px-3 py-2 mb-2 text-sm text-green-700 bg-green-100 rounded">{success}</div>}
             {/* Show Signup or Login Form */}
             {!showLogin ? (
-              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 w-full">
+              <form onSubmit={handleSubmit} className="w-full space-y-4 sm:space-y-6">
                 {/* Name Field */}
                 <div>
                   <label htmlFor="signup-name" className="block mb-2 text-sm font-medium text-gray-700 cursor-pointer">
@@ -130,7 +183,7 @@ const SignUpForm = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute text-gray-400 transform -translate-y-1/2 right-3 top-1/2 hover:text-gray-600 cursor-pointer"
+                      className="absolute text-gray-400 transform -translate-y-1/2 cursor-pointer right-3 top-1/2 hover:text-gray-600"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -150,16 +203,17 @@ const SignUpForm = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full px-4 py-3 font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer text-center"
+                  className="w-full px-4 py-3 font-medium text-center text-white transition-colors bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
                   style={{ textAlign: 'center' }}
+                  disabled={loading}
                 >
-                  Get started
+                  {loading ? 'Signing up...' : 'Get started'}
                 </button>
                 {/* Social Login (Google only) */}
                 <div className="flex space-x-3">
                   <button
                     type="button"
-                    className="flex items-center justify-center flex-1 px-4 py-3 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex items-center justify-center flex-1 px-4 py-3 transition-colors border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -171,14 +225,16 @@ const SignUpForm = () => {
                 </div>
               </form>
             ) : (
-              <form className="space-y-4 sm:space-y-6 w-full">
+              <form className="w-full space-y-4 sm:space-y-6" onSubmit={handleLogin}>
                 <div>
                   <label htmlFor="login-email" className="block mb-2 text-sm font-medium text-gray-700 cursor-pointer">Email</label>
                   <input
                     type="email"
                     id="login-email"
-                    name="loginEmail"
-                    className="w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    name="email"
+                    value={loginData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter your email"
                     required
                   />
@@ -188,24 +244,27 @@ const SignUpForm = () => {
                   <input
                     type="password"
                     id="login-password"
-                    name="loginPassword"
-                    className="w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    name="password"
+                    value={loginData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter your password"
                     required
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full px-4 py-3 font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer text-center"
+                  className="w-full px-4 py-3 font-medium text-center text-white bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
                   style={{ textAlign: 'center' }}
+                  disabled={loading}
                 >
-                  Login
+                  {loading ? 'Logging in...' : 'Login'}
                 </button>
                 {/* Social Login (Google only) */}
-                <div className="flex space-x-3 mt-2">
+                <div className="flex mt-2 space-x-3">
                   <button
                     type="button"
-                    className="flex items-center justify-center flex-1 px-4 py-3 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex items-center justify-center flex-1 px-4 py-3 transition-colors border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -224,4 +283,4 @@ const SignUpForm = () => {
   );
 };
 
-export default SignUpForm;
+export default Signup;

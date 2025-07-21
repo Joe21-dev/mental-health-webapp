@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 
-const therapistSchema = new mongoose.Schema({
+const doctorSchema = new mongoose.Schema({
   name: { type: String, required: true },
   specialty: { type: String, required: true },
-  status: { type: String, default: 'approved' },
+  status: { type: String, default: 'waiting approval' },
   avatar: { type: String },
   booked: { type: Boolean, default: false },
+  bookingInfo: { type: Object, default: null },
+  createdAt: { type: Date, default: Date.now },
+  approvedAt: { type: Date },
 });
 
-const Therapist = mongoose.model('Therapist', therapistSchema);
-export default Therapist;
+export default mongoose.model('Doctor', doctorSchema, 'therapists');

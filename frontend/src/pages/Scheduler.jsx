@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Edit, Trash2, Target, Award, TrendingUp, Clock, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain, BarChart3, Music, Moon, Phone, Menu, X } from 'lucide-react';
+import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain, Music, Moon, Phone, Menu, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const Scheduler = () => {
   const [schedules, setSchedules] = useState([]);
   const [goals, setGoals] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState('schedule'); // 'schedule' or 'goal'
+  const [formType, setFormType] = useState('schedule');
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({
     title: '',
     description: '',
     date: '',
-    type: 'daily', // for goals: 'weekly', 'monthly', 'yearly'
+    time: '',
+    type: 'daily',
     color: 'blue',
   });
   const [calendarDate, setCalendarDate] = useState(() => {
@@ -28,18 +30,155 @@ const Scheduler = () => {
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [checkins, setCheckins] = useState([]);
+  const [currentFocus, setCurrentFocus] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [consistencyMap, setConsistencyMap] = useState({});
+  const [currentDay, setCurrentDay] = useState(1);
+  const [totalDays, setTotalDays] = useState(30);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fetch schedules and goals from backend
+  // --- Mock state for new cards and tracker ---
+  // const [currentFocus] = useState({
+  //   title: 'Anxiety Recovery',
+  //   startDate: '2025-07-01',
+  // });
+  // const [currentDay] = useState(20); // Example: today is day 20
+  // const [totalDays] = useState(30); // Example: 30-day program
+  // const [streak] = useState(7); // Example: 7-day streak
+  // const [longestStreak] = useState(12); // Example: longest streak
+  // // Example consistency map for calendar tracker
+  // const [consistencyMap] = useState({
+  //   2025: {
+  //     6: { // July (0-indexed)
+  //       1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true,
+  //       8: false, 9: true, 10: true, 11: true, 12: true, 13: true, 14: true,
+  //       15: true, 16: true, 17: true, 18: true, 19: true, 20: true
+  //     }
+  //   }
+  // });
+
+  // Fetch schedules, goals, check-ins, and current focus from backend in real time
   useEffect(() => {
-    fetch('/api/schedules')
-      .then(res => res.json())
-      .then(data => setSchedules(data));
-    fetch('/api/goals')
-      .then(res => res.json())
-      .then(data => setGoals(data));
+    const fetchData = () => {
+      fetch('/api/schedules').then(res => res.json()).then(setSchedules);
+      fetch('/api/goals').then(res => res.json()).then(setGoals);
+      fetch('/api/checkins').then(res => res.json()).then(setCheckins);
+      fetch('/api/current-focus').then(res => res.json()).then(setCurrentFocus);
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Poll every 5s for real-time updates
+    return () => clearInterval(interval);
   }, []);
+
+  // On mount, POST to /api/checkins for today and increment progress
+  useEffect(() => {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10);
+    fetch('/api/checkins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateStr })
+    })
+      .then(res => res.json())
+      .then(newCheckin => {
+        setCheckins(prev => {
+          if (!prev.find(c => c.date === newCheckin.date)) return [...prev, newCheckin];
+          return prev;
+        });
+        setCurrentDay(prev => prev + 1); // Increase progress tracker on check-in
+      });
+  }, []);
+
+  // Build consistency map and streaks from checkins
+  useEffect(() => {
+    const map = {};
+    let streakCount = 0, maxStreak = 0, lastDate = null;
+    const sorted = [...checkins].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach(c => {
+      const d = new Date(c.date);
+      if (!map[d.getFullYear()]) map[d.getFullYear()] = {};
+      if (!map[d.getFullYear()][d.getMonth()]) map[d.getFullYear()][d.getMonth()] = {};
+      map[d.getFullYear()][d.getMonth()][d.getDate()] = true;
+      if (lastDate) {
+        const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
+        if (diff === 1) streakCount++;
+        else streakCount = 1;
+      } else {
+        streakCount = 1;
+      }
+      if (streakCount > maxStreak) maxStreak = streakCount;
+      lastDate = d;
+    });
+    setConsistencyMap(map);
+    setStreak(streakCount);
+    setLongestStreak(maxStreak);
+    setCurrentDay(streakCount); // Sync progress tracker with streak
+  }, [checkins]);
+
+  // Update totalDays from currentFocus
+  useEffect(() => {
+    if (!currentFocus) return;
+    setTotalDays(currentFocus.duration || 30);
+  }, [currentFocus]);
+
+  // Always display latest goal as current focus
+  useEffect(() => {
+    if (goals && goals.length > 0) {
+      const latestGoal = goals[goals.length - 1];
+      setCurrentFocus({ title: latestGoal.title, startDate: latestGoal.date, duration: latestGoal.duration || 30 });
+    }
+  }, [goals]);
+
+  // Add schedule/goal logic
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return toast.error('Title is required');
+    let endpoint = '', method = 'POST';
+    if (formType === 'schedule') {
+      endpoint = '/api/schedules';
+      if (editingItem) {
+        endpoint += `/${editingItem._id}`;
+        method = 'PUT';
+      }
+    } else {
+      endpoint = '/api/goals';
+      if (editingItem) {
+        endpoint += `/${editingItem._id}`;
+        method = 'PUT';
+      }
+    }
+    fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('Failed to save');
+        const data = await res.json();
+        if (formType === 'schedule') {
+          setSchedules(s => editingItem ? s.map(i => i._id === data._id ? data : i) : [...s, data]);
+          setCurrentDay(prev => prev + 1); // Increase progress tracker on schedule add
+          toast.success(editingItem ? 'Schedule updated!' : 'Schedule added!');
+        } else {
+          setGoals(g => editingItem ? g.map(i => i._id === data._id ? data : i) : [...g, data]);
+          // Also update current focus
+          await fetch('/api/current-focus', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30 })
+          });
+          setCurrentFocus({ title: data.title, startDate: data.date, duration: data.duration || 30 });
+          toast.success(editingItem ? 'Goal updated!' : 'Goal added!');
+        }
+        setShowForm(false);
+        setEditingItem(null);
+        setForm({ title: '', description: '', date: '', time: '', type: 'daily', color: 'blue' });
+      })
+      .catch(() => toast.error('Failed to save. Please try again.'));
+  }
 
   // Scroll handler for header background
   useEffect(() => {
@@ -49,6 +188,56 @@ const Scheduler = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Notification permission and reminder logic
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!schedules || !schedules.length) return;
+    const checkReminders = () => {
+      const now = new Date();
+      schedules.forEach(s => {
+        if (!s.date || !s.title) return;
+        const scheduleDate = new Date(s.date);
+        if (
+          scheduleDate.getFullYear() === now.getFullYear() &&
+          scheduleDate.getMonth() === now.getMonth() &&
+          scheduleDate.getDate() === now.getDate()
+        ) {
+          let scheduleHour = null, scheduleMinute = null;
+          const timeMatch = s.description && s.description.match(/(\d{1,2}):(\d{2})/);
+          if (timeMatch) {
+            scheduleHour = parseInt(timeMatch[1], 10);
+            scheduleMinute = parseInt(timeMatch[2], 10);
+          }
+          if (scheduleHour === null || scheduleMinute === null) {
+            scheduleHour = 9;
+            scheduleMinute = 0;
+          }
+          if (
+            now.getHours() === scheduleHour &&
+            now.getMinutes() === scheduleMinute &&
+            Math.abs(now.getSeconds()) < 10
+          ) {
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification(`Schedule Reminder: ${s.title}`, {
+                body: s.description || "You have a schedule now!",
+                icon: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png"
+              });
+            } else {
+              alert(`Schedule Reminder: ${s.title}\n${s.description || "You have a schedule now!"}`);
+            }
+          }
+        }
+      });
+    };
+    const interval = setInterval(checkReminders, 10000);
+    return () => clearInterval(interval);
+  }, [schedules]);
 
   // Calendar helpers
   const getMonthName = (month) =>
@@ -65,29 +254,6 @@ const Scheduler = () => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
   }
-  function handleFormSubmit(e) {
-    e.preventDefault();
-    if (!form.title.trim()) return;
-    const endpoint = formType === 'schedule' ? '/api/schedules' : '/api/goals';
-    const method = editingItem ? 'PUT' : 'POST';
-    const url = editingItem ? `${endpoint}/${editingItem._id}` : endpoint;
-    fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (formType === 'schedule') {
-          setSchedules(s => editingItem ? s.map(i => i._id === data._id ? data : i) : [...s, data]);
-        } else {
-          setGoals(g => editingItem ? g.map(i => i._id === data._id ? data : i) : [...g, data]);
-        }
-        setShowForm(false);
-        setEditingItem(null);
-        setForm({ title: '', description: '', date: '', type: 'daily', color: 'blue' });
-      });
-  }
   function handleEdit(item, type) {
     setFormType(type);
     setEditingItem(item);
@@ -95,6 +261,7 @@ const Scheduler = () => {
       title: item.title,
       description: item.description || '',
       date: item.date || '',
+      time: item.time || '',
       type: item.type || (type === 'goal' ? 'weekly' : 'daily'),
       color: item.color || 'blue',
     });
@@ -152,9 +319,11 @@ const Scheduler = () => {
             <span>Therapists</span>
           </button>
           <button
-            className="flex items-center px-4 py-2 space-x-2 font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full cursor-default"
+            className="flex items-center px-4 py-2 space-x-2 font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full cursor-pointer"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+            onClick={() => navigate('/platform/scheduler')}
             disabled
+
           >
             <BookOpen className="w-4 h-4" />
             <span>Scheduler</span>
@@ -162,7 +331,7 @@ const Scheduler = () => {
           <button
             className="flex items-center px-4 py-2 space-x-2 text-gray-800 transition-colors bg-gray-100 border border-gray-200 rounded-full cursor-pointer hover:bg-gray-800 hover:text-gray-100"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-            onClick={() => navigate('/signup-login')}
+            onClick={() => navigate('/platform/chat')}
           >
             <MessageCircle className="w-4 h-4" />
             <span>Health-Chat.ai</span>
@@ -232,7 +401,7 @@ const Scheduler = () => {
               { icon: Home, label: 'Home', path: '/platform' },
               { icon: Users, label: 'Therapists', path: '/platform/therapists' },
               { icon: BookOpen, label: 'Scheduler', path: '/platform/scheduler' },
-              { icon: MessageCircle, label: 'Health-Chat.ai', path: '/ai-doctor' },
+              { icon: MessageCircle, label: 'Chat', path: '/platform/chat' },
               { icon: Shield, label: 'Resources', path: '/platform/resources' },
             ].map(({ icon: Icon, label, path }) => (
               <button
@@ -255,7 +424,7 @@ const Scheduler = () => {
       <div className="flex justify-around">
         {[
           { icon: Home, label: 'Home', path: '/platform' },
-          { icon: BarChart3, label: 'Stats', path: '/stats' },
+          { icon: MessageCircle, label: 'Chat', path: '/platform/chat' },
           { icon: Calendar, label: 'Schedule', path: '/platform/scheduler' },
           { icon: Users, label: 'Therapists', path: '/platform/therapists' },
           { icon: Shield, label: 'Resources', path: '/platform/resources' }
@@ -277,146 +446,162 @@ const Scheduler = () => {
     </nav>
   );
 
+  // Image for goals card background
+  const goalsBgImg = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80";
+
   // Main UI
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-100 px-4 pb-8">
       {/* Mobile Header (fixed, full width) */}
       <div className="fixed top-0 left-0 right-0 z-40 w-full">
         <MobileHeader />
         <MobileNavDrawer />
       </div>
       {/* Main content: scrollable, with padding for header and bottom nav */}
-      <div className="flex-1 w-full overflow-y-auto pt-[64px] pb-[64px] px-0 lg:pt-0 lg:pb-0 lg:px-6">
+      <div className="flex-1 w-full overflow-y-auto pt-[64px] pb-[64px] px-0 lg:pt-0 lg:pb-0 lg:px-0 xl:px-2 sm:px-6">
         <div className="hidden lg:block">
           <Header />
         </div>
-        <div className="grid grid-cols-1 gap-8 px-4 mt-4 lg:grid-cols-2 lg:px-0">
-          {/* Calendar and Schedules */}
-          <div className="p-6 bg-white shadow rounded-3xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="flex items-center text-lg font-semibold"><Calendar className="w-5 h-5 mr-2 text-blue-500" /> Calendar</h3>
-              <button className="flex items-center px-3 py-1 text-white bg-blue-500 rounded" onClick={() => { setFormType('schedule'); setShowForm(true); }}><Plus className="w-4 h-4 mr-1" /> Add Schedule</button>
-            </div>
-            {/* Calendar UI */}
-            <div className="flex items-center justify-between mb-2">
-              <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-gray-100"><ChevronLeft className="w-5 h-5 text-gray-400" /></button>
-              <div className="relative">
-                <button className="px-2 py-1 font-semibold rounded cursor-pointer hover:bg-gray-100" onClick={() => setShowMonthPicker(v => !v)}>{getMonthName(calendarDate.month)}</button>
-                {showMonthPicker && (
-                  <div className="absolute z-20 grid w-64 grid-cols-3 p-4 -translate-x-1/2 bg-white border border-gray-200 shadow-lg left-1/2 top-10 rounded-2xl gap-x-3 gap-y-2 animate-fadeIn">
-                    {Array.from({ length: 12 }).map((_, m) => (
-                      <button key={m} className={`px-0 py-2 rounded-xl font-medium transition text-sm cursor-pointer hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 flex items-center justify-center ${calendarDate.month === m ? 'bg-black text-white shadow' : 'text-gray-700'}`} style={{ minWidth: '60px' }} onClick={() => { setCalendarDate(prev => ({ ...prev, month: m })); setShowMonthPicker(false); }}>{getMonthName(m)}</button>
-                    ))}
-                  </div>
-                )}
+        {/* Add Schedule Button (top left) */}
+        <div className="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-2  mb-4">
+          <button
+            className="flex items-center px-5 py-2 font-semibold text-white bg-blue-600 rounded-xl shadow hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={() => { setFormType('schedule'); setShowForm(true); }}
+          >
+            <Plus className="w-5 h-5 mr-2" /> Add Schedule
+          </button>
+        </div>
+        {/* Desktop: 2-column grid, Mobile: stacked */}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column: Calendar + other cards */}
+          <div className="lg:col-span-2 flex flex-col gap-8">
+            {/* Calendar Tracker on Top */}
+            <div className="p-6 rounded-3xl bg-gray-50 shadow-lg border-none">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="flex items-center text-lg font-semibold"><Calendar className="w-5 h-5 mr-2 text-blue-500" /> Progress Tracker</h3>
+                <div className="text-sm font-semibold text-gray-600">Duration: Day {currentDay} of {totalDays}</div>
               </div>
-              <div className="relative">
-                <button className="px-2 py-1 font-semibold rounded cursor-pointer hover:bg-gray-100" onClick={() => setShowYearPicker(v => !v)}>{calendarDate.year}</button>
-                {showYearPicker && (
-                  <div className="absolute z-20 flex flex-col items-center w-32 p-3 overflow-y-auto -translate-x-1/2 bg-white border border-gray-200 shadow-lg left-1/2 top-10 rounded-2xl max-h-56 animate-fadeIn">
-                    {Array.from({ length: 12 }).map((_, i) => {
-                      const y = new Date().getFullYear() - 6 + i;
-                      return (
-                        <button key={y} className={`w-full px-2 py-2 rounded-xl font-medium transition text-sm cursor-pointer hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 mb-1 ${calendarDate.year === y ? 'bg-black text-white shadow' : 'text-gray-700'}`} onClick={() => { setCalendarDate(prev => ({ ...prev, year: y })); setShowYearPicker(false); }}>{y}</button>
-                      );
-                    })}
-                  </div>
-                )}
+              {/* Calendar Tracker UI */}
+              <div className="grid grid-cols-7 gap-1 mb-2 text-xs text-center text-gray-500 font-semibold">
+                {["S","M","T","W","T","F","S"].map((d, i) => (
+                  <div key={d + '-' + i} className="flex items-center justify-center h-8 lg:h-10 lg:text-sm lg:font-bold">{d}</div>
+                ))}
               </div>
-              <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-gray-100"><ChevronRight className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            <div className="grid grid-cols-7 gap-1 mb-2 text-xs text-center text-gray-500">
-              <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-            </div>
-            <div className="grid grid-cols-7 gap-1 mb-4 text-sm text-center">
-              {(() => {
-                const days = [];
-                const firstDay = getFirstDayOfWeek(calendarDate.month, calendarDate.year);
-                const numDays = getDaysInMonth(calendarDate.month, calendarDate.year);
-                for (let i = 0; i < firstDay; i++) days.push(<div key={"empty-"+i}></div>);
-                for (let d = 1; d <= numDays; d++) {
-                  const isToday = (() => {
-                    const now = new Date();
-                    return d === now.getDate() && calendarDate.month === now.getMonth() && calendarDate.year === now.getFullYear();
-                  })();
-                  const isSelected = d === selectedDate.day && calendarDate.month === selectedDate.month && calendarDate.year === selectedDate.year;
-                  days.push(
-                    <button key={d} className={`p-1 w-8 h-8 rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-400 ${isSelected ? 'bg-black text-white' : isToday ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-blue-100'}`} onClick={() => setSelectedDate({ day: d, month: calendarDate.month, year: calendarDate.year })} aria-label={`Select ${getMonthName(calendarDate.month)} ${d}, ${calendarDate.year}`}>{d}</button>
-                  );
-                }
-                return days;
-              })()}
-            </div>
-            {/* Schedules for selected date */}
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="flex items-center font-semibold text-blue-600 text-md"><Clock className="w-4 h-4 mr-1" /> Daily Schedules</h4>
-              <button className="text-sm text-blue-500 hover:underline" onClick={() => { setFormType('schedule'); setShowForm(true); }}>+ Add</button>
-            </div>
-            <ul className="space-y-3">
-              {schedules.filter(s => s && s.date && s.title && typeof s === 'object').map(s => {
-                try {
-                  const d = new Date(s.date);
-                  if (
-                    d.getDate() === selectedDate.day &&
-                    d.getMonth() === selectedDate.month &&
-                    d.getFullYear() === selectedDate.year
-                  ) {
-                    return (
-                      <li key={s._id} className={`rounded-xl p-4 flex items-center justify-between bg-${s.color || 'blue'}-50`}>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className={`w-5 h-5 text-${s.color || 'blue'}-500`} />
-                          <div>
-                            <div className="font-semibold">{s.title}</div>
-                            <div className="text-xs text-gray-600">{s.description}</div>
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button className="p-2 rounded-full hover:bg-blue-100" onClick={() => handleEdit(s, 'schedule')}><Edit className="w-4 h-4 text-blue-500" /></button>
-                          <button className="p-2 rounded-full hover:bg-red-100" onClick={() => handleDelete(s, 'schedule')}><Trash2 className="w-4 h-4 text-red-500" /></button>
-                        </div>
-                      </li>
+              <div className="grid grid-cols-7 gap-1 mb-4 text-sm text-center">
+                {(() => {
+                  const days = [];
+                  const firstDay = getFirstDayOfWeek(calendarDate.month, calendarDate.year);
+                  const numDays = getDaysInMonth(calendarDate.month, calendarDate.year);
+                  for (let i = 0; i < firstDay; i++) days.push(<div key={"empty-"+i} className="h-8 lg:h-10" />);
+                  for (let d = 1; d <= numDays; d++) {
+                    const isConsistent = consistencyMap[calendarDate.year]?.[calendarDate.month]?.[d] || false;
+                    days.push(
+                      <div
+                        key={'day-' + d}
+                        className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full transition text-base font-medium ${isConsistent ? 'bg-green-400 text-white shadow' : 'bg-gray-200 text-gray-400'} border border-gray-100`}
+                        style={{ minWidth: '2rem', minHeight: '2rem' }}
+                      >
+                        {d}
+                      </div>
                     );
                   }
-                } catch (e) { return null; }
-                return null;
-              })}
-            </ul>
+                  return days;
+                })()}
+              </div>
+              <div className="mt-2 text-xs text-blue-500 text-center">Check in daily to keep your streak and track your progress!</div>
+            </div>
+            {/* Current Focus Card */}
+            <div className="p-6 rounded-3xl bg-gray-50 shadow-lg border-none flex flex-col justify-between">
+              <h3 className="flex items-center text-black text-lg font-semibold mb-2"><Brain className="w-5 h-5 mr-2 text-purple-700" /> Current Focus</h3>
+              <div className="mb-2 pl-6 text-2xl font-bold text-gray-800">{currentFocus ? currentFocus.title : "No current focus"}</div>
+              <div className="mb-1 pl-6 text-sm text-gray-600">Started: {currentFocus ? currentFocus.startDate : "--"}</div>
+              <div className="mb-1 pl-6 text-sm text-gray-600">Progress: {currentDay} / {totalDays} days</div>
+              <div className="mt-2 pl-6 text-xs text-gray-400">Stay consistent for best results!</div>
+            </div>
+            
+            
           </div>
-          {/* Goals */}
-          <div className="p-6 bg-white shadow rounded-3xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="flex items-center text-lg font-semibold"><Target className="w-5 h-5 mr-2 text-green-500" /> Goals</h3>
-              <button className="flex items-center px-3 py-1 text-white bg-green-500 rounded" onClick={() => { setFormType('goal'); setShowForm(true); }}><Plus className="w-4 h-4 mr-1" /> Add Goal</button>
+
+          {/* Right column: */}
+          <div className="relative">
+                {/* Schedules Card */}
+            <div className="p-6 rounded-3xl bg-gray-50 shadow-lg border-none max-h-64 overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="flex items-center font-semibold text-blue-600 text-md"><Clock className="w-4 h-4 mr-1" /> Daily Schedules</h4>
+              </div>
+              <ul className="space-y-3">
+                {schedules.filter(s => s && s.date && s.title && typeof s === 'object').map(s => {
+                  try {
+                    const d = new Date(s.date);
+                    if (
+                      d.getDate() === selectedDate.day &&
+                      d.getMonth() === selectedDate.month &&
+                      d.getFullYear() === selectedDate.year
+                    ) {
+                      return (
+                        <li key={s._id} className={`rounded-xl p-4 flex items-center justify-between bg-${s.color || 'blue'}-50`}>
+                          <div className="flex items-center space-x-3">
+                            <CheckCircle className={`w-5 h-5 text-${s.color || 'blue'}-500`} />
+                            <div>
+                              <div className="font-semibold">{s.title}</div>
+                              <div className="text-xs text-gray-600">{s.description}</div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button className="p-2 rounded-full hover:bg-blue-100" onClick={() => handleEdit(s, 'schedule')}><Edit className="w-4 h-4 text-blue-500" /></button>
+                            <button className="p-2 rounded-full hover:bg-red-100" onClick={() => handleDelete(s, 'schedule')}><Trash2 className="w-4 h-4 text-red-500" /></button>
+                          </div>
+                        </li>
+                      );
+                    }
+                  } catch (e) { return null; }
+                  return null;
+                })}
+              </ul>
             </div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="flex items-center font-semibold text-green-600 text-md"><Award className="w-4 h-4 mr-1" /> Weekly, Monthly, Yearly</h4>
-              <button className="text-sm text-green-500 hover:underline" onClick={() => { setFormType('goal'); setShowForm(true); }}>+ Add</button>
+
+            {/* Goals card */}
+            <div className=" mt-6 p-4 rounded-2xl bg-gray-50 shadow-lg bordee-none max-w-80 h-auto flex flex-col justify-start relative overflow-hidden min-h-[220px] max-h-[260px] overflow-y-auto" style={{ aspectRatio: '1.7/1' }}>
+              <img src={goalsBgImg} alt="Goals" className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none rounded-2xl" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="flex items-center text-lg font-semibold"><Target className="w-5 h-5 mr-2 text-green-500" /> Goals</h3>
+                  <button className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg" onClick={() => { setFormType('goal'); setShowForm(true); }}><Plus className="w-4 h-4" /></button>
+                </div>
+                <ul className="space-y-2">
+                  {goals && goals.filter(g => g && g.type && g.title && typeof g === 'object').map(g => (
+                    <li key={g._id} className={`rounded-xl p-3 flex items-center justify-between bg-${g.color || 'green'}-50 backdrop-blur-sm bg-opacity-80`}>
+                      <div className="flex items-center space-x-3">
+                        {g.type === 'weekly' && <TrendingUp className="w-5 h-5 text-orange-500" />}
+                        {g.type === 'monthly' && <Award className="w-5 h-5 text-purple-500" />}
+                        {g.type === 'yearly' && <Target className="w-5 h-5 text-green-500" />}
+                        <div>
+                          <div className="font-semibold">{g.title}</div>
+                          <div className="text-xs text-gray-600">{g.description}</div>
+                          <div className="text-xs text-gray-400">{g.type ? g.type.charAt(0).toUpperCase() + g.type.slice(1) : ''} Goal</div>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button className="p-2 rounded-full hover:bg-green-100" onClick={() => handleEdit(g, 'goal')}><Edit className="w-4 h-4 text-green-500" /></button>
+                        <button className="p-2 rounded-full hover:bg-red-100" onClick={() => handleDelete(g, 'goal')}><Trash2 className="w-4 h-4 text-red-500" /></button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <ul className="space-y-3">
-              {goals.filter(g => g && g.type && g.title && typeof g === 'object').map(g => (
-                <li key={g._id} className={`rounded-xl p-4 flex items-center justify-between bg-${g.color || 'green'}-50`}>
-                  <div className="flex items-center space-x-3">
-                    {g.type === 'weekly' && <TrendingUp className="w-5 h-5 text-orange-500" />}
-                    {g.type === 'monthly' && <Award className="w-5 h-5 text-purple-500" />}
-                    {g.type === 'yearly' && <Target className="w-5 h-5 text-green-500" />}
-                    <div>
-                      <div className="font-semibold">{g.title}</div>
-                      <div className="text-xs text-gray-600">{g.description}</div>
-                      <div className="text-xs text-gray-400">{g.type ? g.type.charAt(0).toUpperCase() + g.type.slice(1) : ''} Goal</div>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="p-2 rounded-full hover:bg-green-100" onClick={() => handleEdit(g, 'goal')}><Edit className="w-4 h-4 text-green-500" /></button>
-                    <button className="p-2 rounded-full hover:bg-red-100" onClick={() => handleDelete(g, 'goal')}><Trash2 className="w-4 h-4 text-red-500" /></button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {/* Streak Card */}
+            <div className="mt-6 p-6 rounded-3xl bg-gray-50 shadow-lg border-none flex flex-col justify-between">
+              <h3 className="flex items-center text-black text-lg font-semibold mb-2"><Award className="w-5 h-5 mr-2 text-orange-900" /> Streak</h3>
+              <div className="mb-2 pl-6 text-3xl font-bold text-gray-800">{streak} days</div>
+              <div className="mb-1 pl-6 text-sm text-gray-600">Longest streak: {longestStreak} days</div>
+              <div className="mt-2 pl-6 text-xs text-gray-400">Keep going!</div>
+            </div>
           </div>
         </div>
         {/* Add/Edit Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => { setShowForm(false); setEditingItem(null); }}>
+          <div className="fixed inset-0 px-4 pb-10 z-50 flex items-center justify-center bg-black/30" onClick={() => { setShowForm(false); setEditingItem(null); }}>
             <form
               className="relative w-full max-w-md p-8 space-y-5 bg-white border border-gray-100 shadow-xl rounded-2xl animate-fadeIn"
               onClick={e => e.stopPropagation()}
@@ -424,9 +609,12 @@ const Scheduler = () => {
             >
               <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => { setShowForm(false); setEditingItem(null); }} aria-label="Close">&times;</button>
               <h3 className="mb-2 text-lg font-semibold">{editingItem ? `Edit ${formType === 'goal' ? 'Goal' : 'Schedule'}` : `Add ${formType === 'goal' ? 'Goal' : 'Schedule'}`}</h3>
-              <input name="title" value={form.title} onChange={handleFormChange} placeholder="Title" className="w-full px-3 py-2 mb-2 border rounded" required />
-              <textarea name="description" value={form.description} onChange={handleFormChange} placeholder="Description" className="w-full px-3 py-2 mb-2 border rounded" />
+              <input name="title" value={form.title} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Title" : "Schedule Title"} className="w-full px-3 py-2 mb-2 border rounded" required />
+              <textarea name="description" value={form.description} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Description" : "Schedule Description"} className="w-full px-3 py-2 mb-2 border rounded" />
               <input name="date" type="date" value={form.date} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded" required={formType === 'schedule'} />
+              {formType === 'schedule' && (
+                <input name="time" type="time" value={form.time || ''} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded" required />
+              )}
               {formType === 'goal' && (
                 <select name="type" value={form.type} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded">
                   <option value="weekly">Weekly</option>

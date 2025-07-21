@@ -1,50 +1,70 @@
 import express from 'express';
-import Therapist from '../models/Therapist.js';
+import Doctor from '../models/Therapist.js';
+
 const router = express.Router();
 
-// Seed default therapists if not present
-const defaultTherapists = [
-  {
-    name: 'Dr. Ogolla',
-    specialty: 'Cognitive Behavioral Therapy',
-    status: 'approved',
-    avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=60&h=60&fit=crop&crop=face',
-  },
-  {
-    name: 'Dr. Achieng',
-    specialty: 'Mindfulness',
-    status: 'approved',
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-  },
-];
-
-async function seedTherapists() {
-  const count = await Therapist.countDocuments();
-  if (count === 0) {
-    await Therapist.insertMany(defaultTherapists);
-  }
-}
-seedTherapists();
-
-// Get all therapists
+// Get all doctors
 router.get('/', async (req, res) => {
-  const therapists = await Therapist.find();
-  res.json(therapists);
+  try {
+    const doctors = await Doctor.find();
+    res.json(doctors);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch doctors' });
+  }
 });
 
-// Add a therapist
+// Add a new doctor
 router.post('/', async (req, res) => {
-  const { name, specialty, status, avatar } = req.body;
-  const therapist = new Therapist({ name, specialty, status, avatar });
-  await therapist.save();
-  res.json(therapist);
+  try {
+    const { name, specialty, avatar } = req.body;
+    const doctor = new Doctor({
+      name,
+      specialty,
+      avatar,
+      status: 'waiting approval',
+      booked: false,
+      createdAt: new Date(),
+    });
+    await doctor.save();
+    res.status(201).json(doctor);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to add doctor' });
+  }
 });
 
-// Book/unbook a therapist
-router.patch('/:id/book', async (req, res) => {
-  const { booked } = req.body;
-  const therapist = await Therapist.findByIdAndUpdate(req.params.id, { booked }, { new: true });
-  res.json(therapist);
+// Book/unbook doctor and update bookingInfo
+router.put('/:id/book', async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ error: 'Not found' });
+    doctor.booked = req.body.booked;
+    doctor.bookingInfo = req.body.bookingInfo || null;
+    await doctor.save();
+    res.json(doctor);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update booking' });
+  }
+});
+
+// Approve doctors after 4 hours
+router.post('/approve-pending', async (req, res) => {
+  try {
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    const doctors = await Doctor.find({ status: 'waiting approval', createdAt: { $lte: fourHoursAgo } });
+    for (const d of doctors) {
+      d.status = 'approved';
+      d.approvedAt = new Date();
+      await d.save();
+    }
+    res.json({ approved: doctors.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to approve doctors' });
+  }
+});
+
+// Add a test route for debugging
+router.get('/test', (req, res) => {
+  res.json({ message: 'Doctors router is working' });
 });
 
 export default router;

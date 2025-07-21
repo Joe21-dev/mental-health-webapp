@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+import { 
+  Brain,
+} from 'lucide-react';
 const navItems = [
-  { name: 'Home', path: '/' },
+  { name: 'Home', path: '/platform' },
   { name: 'About us', path: '#' },
   { name: 'Platform', path: '/platform' },
-  { name: 'AI Doctor', path: '/ai-doctor' }, // updated path
-  { name: 'Resources', path: '#' }
+
 ];
 
 // Animation keyframes injected into the document
@@ -51,11 +52,11 @@ const Landing = () => {
             {/* Logo */}
             <div className="flex items-center animate-scaleIn">
               <div className="flex items-center space-x-2 cursor-pointer" onClick={() => window.location.pathname = '/'}>
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  {/* Replace white dot with Brain icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 7a5 5 0 0 0-10 0v10a5 5 0 0 0 10 0V7z" /><path d="M12 2v20" /></svg>
+                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => navigate('/')}> {/* Home icon clickable */}
+                    <Brain className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-semibold text-gray-900">Siha.</span>
+                
               </div>
             </div>
             {/* Desktop Navigation */}
@@ -84,9 +85,12 @@ const Landing = () => {
             </div>
             {/* Login Button */}
             <div className="hidden md:flex items-center animate-scaleIn">
-              <Link to="/signup" className="px-5 py-2 bg-black text-white rounded-full font-semibold shadow-md hover:bg-gray-800 transition-colors text-center" style={{textAlign: 'center', minWidth: '110px'}}>
+              <button className="px-5 py-2 bg-gradient-to-r from-black to-gray-500 hover:from-gray-500 hover:to-black
+               text-white rounded-full font-semibold shadow-md 
+                transition-colors cursor-pointer"
+               onClick={() => window.location.pathname = '/signup'}>
                 Sign Up
-              </Link>
+              </button>
             </div>
             {/* Mobile menu button */}
             <div className="md:hidden animate-scaleIn">
@@ -124,9 +128,12 @@ const Landing = () => {
                   </Link>
                 )
               ))}
-              <Link to="/signup" className="w-full block px-3 py-2 bg-black text-white rounded-full font-semibold shadow-md hover:bg-gray-800 transition-colors mt-2 animate-scaleIn text-center">
+              <button className="w-full px-3 py-2 bg-gradient-to-r from-black to-gray-500 text-white rounded-full 
+              font-semibold shadow-md hover:from-gray-500 hover:to-black transition-colors mt-2 animate-scaleIn cursor-pointer
+              "
+              onClick={() => window.location.pathname = '/signup'}>
                 Sign Up
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -138,25 +145,23 @@ const Landing = () => {
             {/* Left Content */}
             <div className="pt-10 pb-8 lg:pt-24 lg:pb-16 animate-slideUp">
               <div className="max-w-full w-full">
-                <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight animate-fadeIn break-words" style={{ wordBreak: 'break-word' }}>
-                  Technologically<br />
-                  <span className="font-medium">driven Mental Health</span><br />
-                  <span className="font-medium">Solution with AI</span>
+                <h1 className="text-3xl xs:text-4xl sm:text-6xl lg:text-6xl font-bold text-gradient-to-r from-black to-gray-500 leading-tight animate-fadeIn break-words" style={{ wordBreak: 'break-word' }}>
+                  AI-powered<br />
+                  <span className="font-medium">mental wellness platform</span><br />
+                  
                 </h1>
                 <p className="mt-4 text-base xs:text-lg text-gray-600 max-w-full animate-slideUp break-words" style={{ wordBreak: 'break-word' }}>
-                  Enhance your mental health journey with our platform, reducing the need for multiple point solutions
+                  Elevate your emotional well-being journey through our unified system, eliminating dependence on various standalone services
                 </p>
                 {/* CTA Buttons */}
                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 animate-fadeIn w-full">
-                  <Link to="/signup" className="bg-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors shadow-lg scale-100 hover:scale-105 active:scale-95 duration-300 animate-scaleIn w-full sm:w-auto text-sm xs:text-base text-center" style={{textAlign: 'center'}}>
+                  <button className="bg-gradient-to-r from-black to-gray-500 hover:from-gray-500 hover:to-black text-white px-5 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors 
+                  shadow-lg scale-100 hover:scale-105 active:scale-95 duration-300 animate-scaleIn 
+                  w-full sm:w-auto text-sm xs:text-base"
+                  onClick={() => window.location.pathname = '/signup'}>
                     Sign Up
-                  </Link>
-                  <div className="flex items-center space-x-2 animate-fadeIn">
-                    <span className="text-xs xs:text-sm text-gray-600">Brought to you by</span>
-                    <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs xs:text-sm font-medium shadow-md">
-                      21-dev
-                    </div>
-                  </div>
+                  </button>
+                 
                 </div>
               </div>
             </div>
@@ -176,19 +181,19 @@ const Landing = () => {
           </div>
         </div>
         {/* Bottom Right Section */}
-        <div className="absolute bottom-4 right-2 xs:right-4 hidden lg:block animate-fadeIn">
+        <div className="absolute bottom-4 mr-16 right-2 xs:right-4 hidden lg:block animate-fadeIn">
           <div className="text-right">
             <p className="text-xs xs:text-sm text-gray-600 mb-2">Towards a New</p>
             <p className="text-base xs:text-lg font-semibold text-gray-900 mb-4">Holistic Healthstyle</p>
             <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp">
               Explore Pillars
-              <ArrowRight className="ml-2 w-4 h-4" />
+              <ArrowRight className="ml-2 w-4 h-4"  />
             </button>
           </div>
         </div>
         {/* Mobile Bottom Section */}
-        <div className="lg:hidden px-2 pb-16 flex justify-end animate-fadeIn w-full">
-          <div className="text-right pr-1 xs:pr-2 w-full">
+        <div className="lg:hidden  px-2 pb-16 flex justify-end animate-fadeIn w-full">
+          <div className="text-right mr-2 pr-1 xs:pr-2 w-full">
             <p className="text-xs xs:text-sm text-gray-600 mb-2">Towards a New</p>
             <p className="text-base xs:text-lg font-semibold text-gray-900 mb-4">Holistic Healthstyle</p>
             <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp">
@@ -197,17 +202,7 @@ const Landing = () => {
             </button>
           </div>
         </div>
-        {/* Example health data display */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-2">Health Records</h2>
-          <ul>
-            {healthData.map(record => (
-              <li key={record._id} className="mb-2 text-sm text-gray-700">
-                {record.type}: {JSON.stringify(record.value)} ({new Date(record.date).toLocaleDateString()})
-              </li>
-            ))}
-          </ul>
-        </div>
+        
       </main>
     </div>
   );

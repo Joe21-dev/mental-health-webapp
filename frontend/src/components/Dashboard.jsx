@@ -24,17 +24,21 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import Therapists from '../pages/Therapists';
 import TherapistsMobile from '../pages/TherapistsMobile';
+import { useResourcePlayer } from '../ResourcePlayerContext.jsx';
+import { toast } from 'react-hot-toast';
 
 const Dashboard = ({ showTherapistsProp = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [healthData, setHealthData] = useState([]);
-  const [currentTrack, setCurrentTrack] = useState(0);
   const [showTherapists, setShowTherapists] = useState(showTherapistsProp);
   const [bookedTherapist, setBookedTherapist] = useState(null);
   const [therapists, setTherapists] = useState([]); // Start with empty array
   const [loadingTherapists, setLoadingTherapists] = useState(true);
   const [therapistsError, setTherapistsError] = useState(null);
+  const [therapyTracker, setTherapyTracker] = useState(null); // Add therapyTracker state to Dashboard
+  const [schedules, setSchedules] = useState([]);
+  const [currentFocus, setCurrentFocus] = useState(null);
   // Calendar state
   const [calendarDate, setCalendarDate] = useState(() => {
     const now = new Date();
@@ -111,26 +115,15 @@ const Dashboard = ({ showTherapistsProp = false }) => {
   }, []);
 
   // Music Player State
-  const musicTracks = [
-    {
-      title: 'Niombee',
-      artist: 'BenSoul',
-      cover: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=200&h=200&fit=crop',
-      duration: '2:46',
-    },
-    {
-      title: 'Sura Yako',
-      artist: 'Sauti Sol',
-      cover: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=200&h=200&fit=crop',
-      duration: '3:12',
-    },
-    {
-      title: 'Mungu Pekee',
-      artist: 'Nyashinski',
-      cover: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=200&h=200&fit=crop',
-      duration: '3:45',
-    },
-  ];
+  // const musicTracks = [...]; // Keep for fallback or local tracks
+  const {
+    activeResource,
+    isPlaying,
+    playResource,
+    pauseResource,
+    nextResource,
+    prevResource
+  } = useResourcePlayer();
 
   // Plans State and handlers (move above DesktopDashboard)
   const [plans, setPlans] = useState([
@@ -281,18 +274,18 @@ const Dashboard = ({ showTherapistsProp = false }) => {
 
   // Desktop Component
   const DesktopDashboard = () => (
-    <div className="hidden min-h-screen p-6 bg-gray-100 lg:block">
+    <div className="min-h-screen bg-gray-100 p-6 hidden lg:block">
       {/* Top Navigation */}
       <nav className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
-          <div className="flex items-center justify-center w-10 h-10 transition-transform bg-gray-800 rounded-full cursor-pointer hover:scale-105" onClick={() => navigate('/')}> {/* Home icon clickable */}
+          <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => navigate('/')}> {/* Home icon clickable */}
             <Brain className="w-5 h-5 text-white" />
           </div>
           <div className="flex items-center space-x-2">
             <button
               className={`bg-gray-800 text-gray-100 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:scale-105 transition-transform border border-gray-800${location.pathname === '/platform' ? ' ring-2 ring-blue-500' : ''}`}
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-              onClick={() => { setShowTherapists(false); navigate('/platform'); }}
+              onClick={() => navigate('/platform')}
             >
               <Home className="w-4 h-4" />
               <span>Home</span>
@@ -300,7 +293,8 @@ const Dashboard = ({ showTherapistsProp = false }) => {
             <button
               className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/therapists' ? ' ring-2 ring-blue-500' : ''}`}
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-              onClick={() => { setShowTherapists(false); navigate('/platform/therapists'); }}
+              onClick={() => navigate('/platform/therapists')}
+          
             >
               <Users className="w-4 h-4" />
               <span>Therapists</span>
@@ -314,8 +308,9 @@ const Dashboard = ({ showTherapistsProp = false }) => {
               <span>Scheduler</span>
             </button>
             <button
-              className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/ai-doctor' ? ' ring-2 ring-blue-500' : ''}`}
+              className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/chat' ? ' ring-2 ring-blue-500' : ''}`}
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              onClick={() => navigate('/platform/chat')}
             >
               <MessageCircle className="w-4 h-4" />
               <span>Health-Chat.ai</span>
@@ -323,6 +318,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
             <button
               className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/resources' ? ' ring-2 ring-blue-500' : ''}`}
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              onClick={() => navigate('/platform/resources')}
             >
               <Shield className="w-4 h-4" />
               <span>Resources</span>
@@ -331,15 +327,15 @@ const Dashboard = ({ showTherapistsProp = false }) => {
         </div>
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
               placeholder="Search..." 
-              className="py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-full">
-            <span className="font-medium text-white">A</span>
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+            <span className="text-white font-medium">A</span>
           </div>
           <img 
             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" 
@@ -352,56 +348,51 @@ const Dashboard = ({ showTherapistsProp = false }) => {
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column */}
         <div className="col-span-3 space-y-6">
-          {/* Music Player */}
-          <div className="p-6 bg-white rounded-3xl">
-            <div className="relative">
-              <img 
-                src={musicTracks[currentTrack].cover}
-                alt="Album Cover" 
-                className="object-cover w-full h-48 rounded-2xl"
-              />
-              <div className="absolute text-white bottom-4 left-4">
-                <div className="text-sm">{musicTracks[currentTrack].duration}</div>
+          {/* Music/Resource Player replaced with Animated Mental Health Card */}
+          <div className="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden" style={{height: '320px', minHeight: '320px', width: '100%'}}>
+            {/* Animated background shapes */}
+            <div className="absolute inset-0 pointer-events-none">
+              <svg width="100%" height="100%" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute top-0 left-0 w-full h-full animate-pulse">
+                <circle cx="80" cy="80" r="60" fill="#a5b4fc" fillOpacity="0.25">
+                  <animate attributeName="r" values="60;80;60" dur="3s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="240" cy="100" r="40" fill="#fca5a5" fillOpacity="0.18">
+                  <animate attributeName="r" values="40;60;40" dur="2.5s" repeatCount="indefinite" />
+                </circle>
+                <ellipse cx="160" cy="240" rx="50" ry="30" fill="#fcd34d" fillOpacity="0.15">
+                  <animate attributeName="rx" values="50;70;50" dur="3.5s" repeatCount="indefinite" />
+                </ellipse>
+              </svg>
+            </div>
+            <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-400 via-purple-400 to-pink-400 flex items-center justify-center shadow-lg animate-bounce mb-4">
+                <Brain className="w-12 h-12 text-white" />
               </div>
-            </div>
-            <div className="mt-4 text-center">
-              <h3 className="font-semibold text-gray-900">{musicTracks[currentTrack].artist}</h3>
-              <p className="text-sm text-gray-600">{musicTracks[currentTrack].title}</p>
-            </div>
-            <div className="flex items-center justify-center mt-4 space-x-4">
-              <button className="p-2 transition bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200" onClick={handlePrevTrack} aria-label="Previous Track">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button className="p-2 transition bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200" onClick={handlePrevTrack} aria-label="Rewind">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button className="p-4 text-white transition bg-blue-500 rounded-full cursor-pointer hover:bg-blue-600" aria-label="Play/Pause">
-                <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[6px] border-y-transparent ml-1"></div>
-              </button>
-              <button className="p-2 transition bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200" onClick={handleNextTrack} aria-label="Forward">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              <button className="p-2 transition bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200" onClick={handleNextTrack} aria-label="Next Track">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              <h3 className="font-bold text-xl text-blue-700 mb-2 animate-fadeIn">Mental Health</h3>
+              <p className="text-sm text-gray-700 text-center max-w-xs animate-fadeIn delay-200">Take a deep breath. Your mental health matters. Track your mood, meditate, and connect with therapists for support.</p>
+              <div className="mt-4 flex space-x-2 animate-fadeIn delay-300">
+                <span className="px-3 py-1 rounded-full bg-blue-200 text-blue-700 text-xs font-semibold shadow">Mindfulness</span>
+                <span className="px-3 py-1 rounded-full bg-purple-200 text-purple-700 text-xs font-semibold shadow">Mood Tracker</span>
+                <span className="px-3 py-1 rounded-full bg-pink-200 text-pink-700 text-xs font-semibold shadow">Therapy</span>
+              </div>
             </div>
           </div>
 
           {/* Calendar */}
-          <div className="p-6 bg-white rounded-3xl">
+          <div className="bg-white rounded-3xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={handlePrevMonth} className="p-1 transition rounded-full cursor-pointer hover:bg-gray-100" aria-label="Previous Month">
+              <button onClick={handlePrevMonth} className="cursor-pointer p-1 rounded-full hover:bg-gray-100 transition" aria-label="Previous Month">
                 <ChevronLeft className="w-5 h-5 text-gray-400" />
               </button>
               <div className="relative">
                 <button
-                  className="px-2 py-1 font-semibold rounded cursor-pointer hover:bg-gray-100"
+                  className="font-semibold px-2 py-1 rounded cursor-pointer hover:bg-gray-100"
                   onClick={() => setShowMonthPicker((v) => !v)}
                 >
                   {getMonthName(calendarDate.month)}
                 </button>
                 {showMonthPicker && (
-                  <div className="absolute z-20 grid w-64 grid-cols-3 p-4 -translate-x-1/2 bg-white border border-gray-200 shadow-lg left-1/2 top-10 rounded-2xl gap-x-3 gap-y-2 animate-fadeIn">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-10 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 grid grid-cols-3 gap-x-3 gap-y-2 p-4 w-64 animate-fadeIn">
                     {Array.from({ length: 12 }).map((_, m) => (
                       <button
                         key={m}
@@ -420,13 +411,13 @@ const Dashboard = ({ showTherapistsProp = false }) => {
               </div>
               <div className="relative">
                 <button
-                  className="px-2 py-1 font-semibold rounded cursor-pointer hover:bg-gray-100"
+                  className="font-semibold px-2 py-1 rounded cursor-pointer hover:bg-gray-100"
                   onClick={() => setShowYearPicker((v) => !v)}
                 >
                   {calendarDate.year}
                 </button>
                 {showYearPicker && (
-                  <div className="absolute z-20 flex flex-col items-center w-32 p-3 overflow-y-auto -translate-x-1/2 bg-white border border-gray-200 shadow-lg left-1/2 top-10 rounded-2xl max-h-56 animate-fadeIn">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-10 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 max-h-56 overflow-y-auto p-3 w-32 animate-fadeIn flex flex-col items-center">
                     {Array.from({ length: 12 }).map((_, i) => {
                       const y = new Date().getFullYear() - 6 + i;
                       return (
@@ -445,14 +436,14 @@ const Dashboard = ({ showTherapistsProp = false }) => {
                   </div>
                 )}
               </div>
-              <button onClick={handleNextMonth} className="p-1 transition rounded-full cursor-pointer hover:bg-gray-100" aria-label="Next Month">
+              <button onClick={handleNextMonth} className="cursor-pointer p-1 rounded-full hover:bg-gray-100 transition" aria-label="Next Month">
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-2 text-xs text-center text-gray-500">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-2">
               <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-sm text-center">
+            <div className="grid grid-cols-7 gap-1 text-center text-sm">
               {(() => {
                 const days = [];
                 const firstDay = getFirstDayOfWeek(calendarDate.month, calendarDate.year);
@@ -484,23 +475,27 @@ const Dashboard = ({ showTherapistsProp = false }) => {
         {/* Center Column */}
         <div className="col-span-6 space-y-6">
           {/* Pills Schedule */}
-          <div className="p-6 bg-white rounded-3xl">
+          <div className="bg-white rounded-3xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Today's schedule</h3>
               <ExternalLink className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="flex items-center mb-4 space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm">Morning Run</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <span className="text-sm">Evening walk with friends</span>
-              </div>
-            </div>
-            <div className="inline-block px-3 py-1 mb-4 text-sm text-white bg-gray-800 rounded-full">
-              Vitamin D
+            <div className="space-y-2 mb-4">
+              {schedules && schedules.filter(s => {
+                const today = new Date();
+                const schedDate = new Date(s.date);
+                return schedDate.getFullYear() === today.getFullYear() && schedDate.getMonth() === today.getMonth() && schedDate.getDate() === today.getDate();
+              }).map(s => (
+                <div key={s._id} className="flex items-center space-x-2">
+                  <div className={`w-3 h-3 bg-${s.color || 'blue'}-500 rounded-full`}></div>
+                  <span className="text-sm">{s.title} {s.time && <span className="text-xs text-gray-400 ml-1">({s.time})</span>}</span>
+                </div>
+              ))}
+              {(!schedules || schedules.filter(s => {
+                const today = new Date();
+                const schedDate = new Date(s.date);
+                return schedDate.getFullYear() === today.getFullYear() && schedDate.getMonth() === today.getMonth() && schedDate.getDate() === today.getDate();
+              }).length === 0) && <div className="text-xs text-gray-400">No schedules for today.</div>}
             </div>
             <div className="flex justify-between text-xs text-gray-500">
               <span>9:00</span><span>11:00</span><span>13:00</span><span>15:00</span><span>17:00</span><span>19:00</span><span>21:00</span>
@@ -509,17 +504,17 @@ const Dashboard = ({ showTherapistsProp = false }) => {
 
           {/* Sleep Level & Meditation */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="p-6 bg-white rounded-3xl">
-              <div className="flex items-center mb-4 space-x-2">
+            <div className="bg-white rounded-3xl p-6">
+              <div className="flex items-center space-x-2 mb-4">
                 <Moon className="w-5 h-5 text-blue-500" />
                 <h3 className="font-semibold">Streak level</h3>
               </div>
-              <div className="flex items-end justify-center h-32 p-4 bg-gray-50 rounded-2xl">
+              <div className="h-32 bg-gray-50 rounded-2xl flex items-end justify-center p-4">
                 {[...Array(20)].map((_, i) => (
                   <div key={i} className={`w-2 mx-1 bg-blue-${i % 3 === 0 ? '500' : '300'} rounded-t`} style={{height: `${Math.random() * 80 + 20}%`}}></div>
                 ))}
               </div>
-              <div className="flex items-center justify-between mt-4">
+              <div className="mt-4 flex items-center justify-between">
                 <div>
                   <div className="text-2xl font-bold">8h</div>
                   <div className="text-sm text-gray-500">Average focus duration in March</div>
@@ -528,8 +523,8 @@ const Dashboard = ({ showTherapistsProp = false }) => {
               </div>
             </div>
 
-            <div className="p-6 bg-white rounded-2xl">
-              <div className="flex items-center mb-4 space-x-2">
+            <div className="bg-white rounded-3xl p-6">
+              <div className="flex items-center space-x-2 mb-4">
                 <Heart className="w-5 h-5 text-orange-500" />
                 <h3 className="font-semibold">Meditation</h3>
               </div>
@@ -549,27 +544,60 @@ const Dashboard = ({ showTherapistsProp = false }) => {
           </div>
 
           {/* Therapy Tracker */}
-          <div className="p-6 bg-white rounded-3xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Therapy tracker</h3>
-              <select className="px-3 py-1 text-sm border border-gray-200 rounded-lg">
-                <option>6 months</option>
-              </select>
+          <div className="bg-white rounded-3xl p-6 flex flex-col gap-3 shadow border border-blue-100">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold flex items-center gap-2"><Users className="w-5 h-5 text-blue-500" /> Therapy Tracker</h3>
+              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1"><BookOpen className="w-4 h-4" /> Active</span>
             </div>
-            <div className="grid grid-cols-6 gap-4 mb-4">
-              {['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map((month, i) => (
-                <div key={month} className="text-center">
-                  <div className="mb-2 text-xs text-gray-500">{month}</div>
-                  <div className={`h-16 rounded-lg ${i % 2 === 0 ? 'bg-red-100' : 'bg-blue-100'} flex items-center justify-center`}>
-                    <span className="text-lg font-bold">{[7, 4, 6, 10, 2, 12][i]}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 text-xl font-bold">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="font-semibold text-lg">{therapyTracker?.doctor?.name || 'User'}</div>
+                <div className="text-xs text-gray-500">Patient</div>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">50%</div>
-              <div className="px-3 py-1 text-sm text-white bg-gray-800 rounded-full">
-                Avg 3 sessions / week
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="w-5 h-5 text-purple-500" />
+              <span className="text-sm text-gray-700">Condition: <span className="font-semibold">{therapyTracker?.doctor?.specialty || 'N/A'}</span></span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <Brain className="w-5 h-5 text-pink-500" />
+              <span className="text-sm text-gray-700">Therapy: <span className="font-semibold">{therapyTracker?.therapy || 'N/A'}</span></span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="w-5 h-5 text-green-500" />
+              <span className="text-sm text-gray-700">Booked: <span className="font-semibold">{therapyTracker?.date ? new Date(therapyTracker.date).toLocaleDateString() : 'N/A'}</span></span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-5 h-5 text-orange-500" />
+              <span className="text-sm text-gray-700">Streak: <span className="font-bold text-green-600">{therapyTracker?.streak || 0}</span> days</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <BookOpen className="w-5 h-5 text-blue-500" />
+              <span className="text-sm text-gray-700">Longest Streak: <span className="font-bold text-blue-600">{therapyTracker?.longestStreak || 0}</span> days</span>
+            </div>
+            <div className="text-xs text-gray-400 mt-2">Stay consistent for best results!</div>
+          </div>
+
+          {/* Conversation Video Card - Desktop only, below Therapy card */}
+          <div className="hidden lg:block">
+            <div className="bg-white rounded-3xl p-0 shadow-lg overflow-hidden flex flex-col justify-end relative mt-6" style={{ minHeight: '220px', height: '260px' }}>
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ zIndex: 0 }}
+                poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80"
+              >
+                <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4" />
+              </video>
+              <div className="relative z-10 p-6 flex flex-col justify-end h-full" style={{ background: 'rgba(0,0,0,0.25)' }}>
+                <h3 className="text-white text-lg font-semibold mb-2 drop-shadow">Meaningful Connections</h3>
+                <p className="text-white text-xs drop-shadow">Conversations can uplift your mood. Reach out and connect with someone today!</p>
               </div>
             </div>
           </div>
@@ -578,167 +606,98 @@ const Dashboard = ({ showTherapistsProp = false }) => {
         {/* Right Column */}
         <div className="col-span-3 space-y-6">
           {/* Plans */}
-          <div className="p-6 bg-white rounded-3xl">
+          <div className="bg-white rounded-3xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Plans</h3>
-              <button
-                className="flex items-center justify-center w-8 h-8 text-white transition bg-blue-500 rounded-full hover:bg-blue-600"
-                onClick={handleAddPlan}
-                aria-label="Add Plan"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
             </div>
-            <div className="space-y-3" style={plans.length > 3 ? { maxHeight: '260px', overflowY: 'auto' } : {}}>
-              {plans.map(plan => (
-                <div key={plan.id} className={`bg-${plan.color}-50 rounded-2xl p-4 relative group`}>
+            <div className="space-y-3">
+              {currentFocus ? (
+                <div className={`bg-blue-50 rounded-2xl p-4 relative group`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`bg-${plan.color}-500 text-white px-2 py-1 rounded text-xs`}>{plan.category}</span>
-                    <div className="flex space-x-1 transition opacity-0 group-hover:opacity-100">
-                      <button
-                        className={`w-8 h-8 bg-${plan.color}-500 text-white rounded-full flex items-center justify-center hover:bg-${plan.color}-600 transition`}
-                        onClick={() => handleEditPlan(plan)}
-                        aria-label="Edit Plan"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z" /></svg>
-                      </button>
-                      <button
-                        className="flex items-center justify-center w-8 h-8 text-gray-700 transition bg-gray-200 rounded-full hover:bg-red-500 hover:text-white"
-                        onClick={() => handleDeletePlan(plan.id)}
-                        aria-label="Delete Plan"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    </div>
+                    <span className={`bg-blue-500 text-white px-2 py-1 rounded text-xs`}>Current Focus</span>
                   </div>
-                  <h4 className="text-sm font-semibold">{plan.title}</h4>
-                  <p className="text-xs text-gray-600">{plan.description}</p>
+                  <h4 className="font-semibold text-sm">{currentFocus.title}</h4>
+                  <p className="text-xs text-gray-600">Started: {currentFocus.startDate}</p>
+                  <p className="text-xs text-gray-400">Duration: {currentFocus.duration || 30} days</p>
                 </div>
-              ))}
+              ) : <div className="text-xs text-gray-400">No current focus set.</div>}
             </div>
-            {showPlanForm && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowPlanForm(false)}>
-                <form
-                  className="relative w-full max-w-md p-8 space-y-5 bg-white border border-gray-100 shadow-xl rounded-2xl animate-fadeIn"
-                  onClick={e => e.stopPropagation()}
-                  onSubmit={handlePlanFormSubmit}
-                >
-                  <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => setShowPlanForm(false)} aria-label="Close">&times;</button>
-                  <h3 className="mb-2 text-lg font-semibold">{editingPlan ? 'Edit Plan' : 'Add Plan'}</h3>
-                  <div className="flex space-x-2">
-                    <select name="category" value={planForm.category} onChange={handlePlanFormChange} required className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-200">
-                      <option value="">Category</option>
-                      <option value="Sleep">Sleep</option>
-                      <option value="Meditation">Meditation</option>
-                      <option value="Studying">Studying</option>
-                    </select>
-                    <select name="color" value={planForm.color} onChange={handlePlanFormChange} required className="px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-200">
-                      <option value="blue">Blue</option>
-                      <option value="orange">Orange</option>
-                      <option value="purple">Purple</option>
-                    </select>
-                  </div>
-                  <input
-                    type='text'
-                    name='title'
-                    value={planForm.title}
-                    onChange={e => {
-                      e.stopPropagation();
-                      handlePlanFormChange(e);
-                    }}
-                    autoComplete='off'
-                    placeholder='Title'
-                    className='w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-200'
-                  />
-                  <textarea
-                    name='description'
-                    value={planForm.description}
-                    onChange={e => {
-                      e.stopPropagation();
-                      handlePlanFormChange(e);
-                    }}
-                    autoComplete='off'
-                    placeholder='Description'
-                    className='border border-gray-200 rounded-xl px-4 py-3 w-full min-h-[60px] bg-gray-50 focus:ring-2 focus:ring-blue-200'
-                  />
-                  <div className="flex justify-end mt-2 space-x-2">
-                    <button type="button" className="px-4 py-2 text-gray-700 bg-gray-200 rounded-xl hover:bg-gray-300" onClick={() => setShowPlanForm(false)}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="px-4 py-2 text-white bg-blue-500 rounded-xl hover:bg-blue-600">
-                      {editingPlan ? 'Save' : 'Add'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
           </div>
 
           {/* Contact Doctor - Therapy Section */}
-          <div className="p-6 bg-white rounded-2xl">
+          <div className="bg-white rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="px-2 py-1 text-xs text-white bg-pink-500 rounded">Therapy</span>
+              <span className="bg-pink-500 text-white px-2 py-1 rounded text-xs">Therapy</span>
               <div className="flex space-x-2">
-                <button className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
+                <button className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                   <MessageCircle className="w-4 h-4" />
                 </button>
-                <button className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full">
+                <button className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
                   <Phone className="w-4 h-4" />
                 </button>
               </div>
             </div>
             {bookedTherapist ? (
               <>
-                <h3 className="mb-2 font-semibold">{bookedTherapist.name} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
+                <h3 className="font-semibold mb-2">{bookedTherapist.name} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white bg-blue-500 rounded-full">
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">
                     {bookedTherapist.name.replace(/Dr\.?\s*/i, '').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-gray-600">{bookedTherapist.specialty}</p>
-                    <span className="px-2 py-1 text-xs text-white bg-gray-800 rounded">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
+                    <span className="bg-gray-800 text-white px-2 py-1 rounded text-xs">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <h3 className="mb-2 font-semibold">No therapist booked</h3>
+                <h3 className="font-semibold mb-2">No therapist booked</h3>
                 <button
-                  className="px-4 py-2 mt-3 text-white bg-blue-500 rounded-xl hover:bg-blue-600"
-                  onClick={() => navigate('/platform/therapists')}
+                  className="mt-3 px-4 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600"
+                  onClick={() => setShowTherapists(true)}
                 >
                   Book a Therapist
                 </button>
               </>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Example health data display */}
-      <div className="mt-8">
-        <h2 className="mb-2 text-xl font-bold">Health Records</h2>
-        <ul>
-          {healthData.map(record => (
-            <li key={record._id} className="mb-2 text-sm text-gray-700">
-              {record.type}: {JSON.stringify(record.value)} ({new Date(record.date).toLocaleDateString()})
-            </li>
-          ))}
-        </ul>
+          {/* Conversation Video Card - Desktop only, below Therapy card */}
+          <div className="hidden lg:block">
+            <div className="bg-white rounded-3xl p-0 shadow-lg overflow-hidden flex flex-col justify-end relative mt-6" style={{ minHeight: '220px', height: '260px' }}>
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ zIndex: 0 }}
+                poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80"
+              >
+                <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4" />
+              </video>
+              <div className="relative z-10 p-6 flex flex-col justify-end h-full" style={{ background: 'rgba(0,0,0,0.25)' }}>
+                <h3 className="text-white text-lg font-semibold mb-2 drop-shadow">Meaningful Connections</h3>
+                <p className="text-white text-xs drop-shadow">Conversations can uplift your mood. Reach out and connect with someone today!</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 
   // Mobile Component
   const MobileDashboard = () => (
-    <div className="flex flex-col min-h-screen bg-gray-100 lg:hidden">
+    <div className="min-h-screen bg-gray-100 lg:hidden flex flex-col">
       {/* Mobile Header */}
       <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-transparent'} px-4 py-3 flex items-center justify-between`}>
         <button onClick={() => setMobileMenuOpen(true)}>
           <Menu className="w-6 h-6" />
         </button>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-gray-800 rounded-full cursor-pointer" onClick={() => navigate('/')}> {/* Brain icon clickable */}
+          <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}> {/* Brain icon clickable */}
             <Brain className="w-4 h-4 text-white" />
           </div>
           <span className="font-semibold">Dashboard</span>
@@ -752,8 +711,8 @@ const Dashboard = ({ showTherapistsProp = false }) => {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setMobileMenuOpen(false)}>
-          <div className="w-64 h-full p-4 bg-white" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setMobileMenuOpen(false)}>
+          <div className="bg-white w-64 h-full p-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-semibold">Navigation</h2>
               <button onClick={() => setMobileMenuOpen(false)}>
@@ -762,16 +721,17 @@ const Dashboard = ({ showTherapistsProp = false }) => {
             </div>
             <nav className="space-y-2">
               {[
-                { icon: Home, label: 'Home', path: '/platform' },
-                { icon: Users, label: 'Therapists', path: '/platform/therapists' },
-                { icon: BookOpen, label: 'Scheduler', path: '/platform/scheduler' },
-                { icon: MessageCircle, label: 'Health-Chat.ai', path: '/platform/ai-doctor' },
-                { icon: Shield, label: 'Resources', path: '/platform/resources' },
-              ].map(({ icon: Icon, label, path }) => (
+                { icon: Home, label: 'Home' },
+                { icon: Users, label: 'Therapists' },
+                { icon: BookOpen, label: 'Scheduler' },
+                { icon: MessageCircle, label: 'Health-Chat.ai' },
+                { icon: Shield, label: 'Resources' },
+                
+              ].map(({ icon: Icon, label }) => (
                 <button
                   key={label}
-                  className="flex items-center w-full p-3 space-x-3 rounded-lg hover:bg-gray-100"
-                  onClick={() => { setMobileMenuOpen(false); navigate(path); }}
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100"
+                  onClick={label === 'Home' ? () => { setMobileMenuOpen(false); navigate('/platform'); } : label === 'Therapists' ? () => { setMobileMenuOpen(false); navigate('/platform/therapists'); } : undefined}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{label}</span>
@@ -782,136 +742,127 @@ const Dashboard = ({ showTherapistsProp = false }) => {
         </div>
       )}
 
-      {/* Mobile Content */}
-      <div className="flex-1 min-h-0 p-4 pb-24 space-y-4 overflow-y-auto">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 text-white bg-blue-500 rounded-2xl">
-            <Moon className="w-8 h-8 mb-2" />
-            <h3 className="font-semibold">Streak</h3>
-            <p className="text-sm opacity-90">8h avg</p>
+      {/* Animated Mental Health Card (Top) */}
+      <div className="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden mt-4 mb-4" style={{height: '220px', minHeight: '180px', width: '100%'}}>
+        <div className="absolute inset-0 pointer-events-none">
+          <svg width="100%" height="100%" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute top-0 left-0 w-full h-full animate-pulse">
+            <circle cx="80" cy="80" r="60" fill="#a5b4fc" fillOpacity="0.25">
+              <animate attributeName="r" values="60;80;60" dur="3s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="240" cy="100" r="40" fill="#fca5a5" fillOpacity="0.18">
+              <animate attributeName="r" values="40;60;40" dur="2.5s" repeatCount="indefinite" />
+            </circle>
+            <ellipse cx="160" cy="180" rx="50" ry="30" fill="#fcd34d" fillOpacity="0.15">
+              <animate attributeName="rx" values="50;70;50" dur="3.5s" repeatCount="indefinite" />
+            </ellipse>
+          </svg>
+        </div>
+        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-400 via-purple-400 to-pink-400 flex items-center justify-center shadow-lg animate-bounce mb-2">
+            <Brain className="w-8 h-8 text-white" />
           </div>
-          <div className="p-4 text-white bg-orange-500 rounded-2xl">
-            <Heart className="w-8 h-8 mb-2" />
-            <h3 className="font-semibold">Meditation</h3>
-            <p className="text-sm opacity-90">16 days</p>
+          <h3 className="font-bold text-lg text-blue-700 mb-1 animate-fadeIn">Mental Health</h3>
+          <p className="text-xs text-gray-700 text-center max-w-xs animate-fadeIn delay-200">Take a deep breath. Your mental health matters. Track your mood, meditate, and connect with therapists for support.</p>
+          <div className="mt-2 flex space-x-1 animate-fadeIn delay-300">
+            <span className="px-2 py-0.5 rounded-full bg-blue-200 text-blue-700 text-xs font-semibold shadow">Mindfulness</span>
+            <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-700 text-xs font-semibold shadow">Mood Tracker</span>
+            <span className="px-2 py-0.5 rounded-full bg-pink-200 text-pink-700 text-xs font-semibold shadow">Therapy</span>
           </div>
         </div>
+      </div>
 
-        {/* Pills Schedule */}
-        <div className="p-4 bg-white rounded-2xl">
-          <h3 className="mb-3 font-semibold">Today's Schedule</h3>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 rounded-lg bg-green-50">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm">Morning Run</span>
+      {/* Plans */}
+      <div className="bg-white rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Active Plans</h3>
+          <Plus className="w-5 h-5 text-gray-400" />
+        </div>
+        <div className="space-y-3">
+          <div className="bg-blue-50 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs">Sleep</span>
+                <h4 className="font-semibold text-sm mt-1">Insomnia recovery</h4>
               </div>
-              <span className="text-xs text-gray-500">9:00 AM</span>
+              <ChevronRight className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="flex items-center justify-between p-2 rounded-lg bg-orange-50">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <span className="text-sm">Evening walk with friends</span>
+          </div>
+          <div className="bg-orange-50 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs">Meditation</span>
+                <h4 className="font-semibold text-sm mt-1">Anxiety relief</h4>
               </div>
-              <span className="text-xs text-gray-500">7:00 PM</span>
+              <ChevronRight className="w-5 h-5 text-orange-500" />
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Current Playing */}
-        <div className="p-4 bg-white rounded-2xl">
-          <h3 className="mb-3 font-semibold">Now Playing</h3>
-          <div className="flex items-center space-x-3">
-            <img 
-              src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=60&h=60&fit=crop" 
-              alt="Album" 
-              className="rounded-lg w-15 h-15"
-            />
-            <div className="flex-1">
-              <h4 className="font-medium">Bensoul</h4>
-              <p className="text-sm text-gray-600">Niombee</p>
-            </div>
-            <button className="flex items-center justify-center w-12 h-12 text-white bg-blue-500 rounded-full">
-              <div className="w-0 h-0 border-l-[6px] border-l-white border-y-[4px] border-y-transparent ml-1"></div>
+      {/* Contact Doctor - Therapy Section */}
+      <div className="bg-white rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="bg-pink-500 text-white px-2 py-1 rounded text-xs">Therapy</span>
+          <div className="flex space-x-2">
+            <button className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+              <MessageCircle className="w-4 h-4" />
+            </button>
+            <button className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+              <Phone className="w-4 h-4" />
             </button>
           </div>
         </div>
+        {bookedTherapist ? (
+          <>
+            <h3 className="font-semibold mb-2">{bookedTherapist.name} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">
+                {bookedTherapist.name.replace(/Dr\.?\s*/i, '').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">{bookedTherapist.specialty}</p>
+                <span className="bg-gray-800 text-white px-2 py-1 rounded text-xs">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="font-semibold mb-2">No therapist booked</h3>
+            <button
+              className="mt-3 px-4 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600"
+              onClick={() => navigate('/platform/therapists')}
+            >
+              Book a Therapist
+            </button>
+          </>
+        )}
+      </div>
 
-        {/* Plans */}
-        <div className="p-4 bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">Active Plans</h3>
-            <Plus className="w-5 h-5 text-gray-400" />
-          </div>
-          <div className="space-y-3">
-            <div className="p-3 bg-blue-50 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="px-2 py-1 text-xs text-white bg-blue-500 rounded">Sleep</span>
-                  <h4 className="mt-1 text-sm font-semibold">Insomnia recovery</h4>
-                </div>
-                <ChevronRight className="w-5 h-5 text-blue-500" />
-              </div>
-            </div>
-            <div className="p-3 bg-orange-50 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="px-2 py-1 text-xs text-white bg-orange-500 rounded">Meditation</span>
-                  <h4 className="mt-1 text-sm font-semibold">Anxiety relief</h4>
-                </div>
-                <ChevronRight className="w-5 h-5 text-orange-500" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Doctor - Therapy Section */}
-        <div className="p-4 bg-white rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <span className="px-2 py-1 text-xs text-white bg-pink-500 rounded">Therapy</span>
-            <div className="flex space-x-2">
-              <button className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                <MessageCircle className="w-4 h-4" />
-              </button>
-              <button className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full">
-                <Phone className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          {bookedTherapist ? (
-            <>
-              <h3 className="mb-2 font-semibold">{bookedTherapist.name} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white bg-blue-500 rounded-full">
-                  {bookedTherapist.name.replace(/Dr\.?\s*/i, '').charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600">{bookedTherapist.specialty}</p>
-                  <span className="px-2 py-1 text-xs text-white bg-gray-800 rounded">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <h3 className="mb-2 font-semibold">No therapist booked</h3>
-              <button
-                className="px-4 py-2 mt-3 text-white bg-blue-500 rounded-xl hover:bg-blue-600"
-                onClick={() => navigate('/platform/therapists')}
-              >
-                Book a Therapist
-              </button>
-            </>
-          )}
+      {/* Conversation Video Card (Bottom, scrollable) */}
+      <div className="bg-white rounded-3xl p-0 shadow-lg overflow-hidden flex flex-col justify-end relative my-4" style={{ minHeight: '160px', height: '180px' }}>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
+          poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80"
+        >
+          <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4" />
+        </video>
+        <div className="relative z-10 p-4 flex flex-col justify-end h-full" style={{ background: 'rgba(0,0,0,0.25)' }}>
+          <h3 className="text-white text-base font-semibold mb-1 drop-shadow">Meaningful Connections</h3>
+          <p className="text-white text-xs drop-shadow">Conversations can uplift your mood. Reach out and connect with someone today!</p>
         </div>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 py-2 bg-white border-t border-gray-200">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
         <div className="flex justify-around">
           {[
             { icon: Home, label: 'Home', path: '/platform' },
-            { icon: BarChart3, label: 'Stats', path: '/platform/stats' },
+            { icon: MessageCircle, label: 'Chat', path: '/platform/chat' },
             { icon: Calendar, label: 'Schedule', path: '/platform/scheduler' },
             { icon: Users, label: 'Therapists', path: '/platform/therapists' },
             { icon: Shield, label: 'Resources', path: '/platform/resources' }
@@ -921,11 +872,12 @@ const Dashboard = ({ showTherapistsProp = false }) => {
               <button
                 key={label}
                 className={`flex flex-col items-center py-2 px-3 cursor-pointer rounded-lg transition-colors duration-200 hover:bg-gray-100${isActive ? ' bg-blue-100' : ''}`}
-                onClick={() => navigate(path)}
+                onClick={label === 'Home' ? () => navigate('/platform') : label === (label) ? () => navigate(path) : undefined}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-gray-800' : 'text-gray-600'}`} />
                 <span className={`text-xs mt-1 ${isActive ? 'text-gray-800 font-semibold' : 'text-gray-600'}`}>{label}</span>
               </button>
+              
             );
           })}
         </div>
@@ -951,6 +903,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
                 setBookedTherapist={setBookedTherapist}
                 onBookOrUnbook={handleBookOrUnbook}
                 onAddTherapist={handleAddTherapist}
+                setTherapyTracker={setTherapyTracker} // Pass setTherapyTracker to Therapists
               />
             )}
           </div>
@@ -968,6 +921,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
                 setBookedTherapist={setBookedTherapist}
                 onBookOrUnbook={handleBookOrUnbook}
                 onAddTherapist={handleAddTherapist}
+                setTherapyTracker={setTherapyTracker} // Pass setTherapyTracker to TherapistsMobile
               />
             )}
           </div>
