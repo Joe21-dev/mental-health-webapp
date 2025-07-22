@@ -11,7 +11,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
 app.use('/api/gemini-chat', geminiChatRouter);
@@ -24,10 +27,21 @@ const PORT = process.env.PORT || 5000;
 // Serve static files from resources folder
 app.use('/resources', express.static(path.join(process.cwd(), 'resources')));
 
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/healthapp', {
+// MongoDB Atlas connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://<username>:<password>@cluster0.mongodb.net/healthapp?retryWrites=true&w=majority';
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+}).catch(err => {
+  console.error('MongoDB connection error:', err.message);
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.error('MongoDB disconnected');
 });
 
 import Therapist from './models/Therapist.js';
@@ -43,15 +57,15 @@ mongoose.connection.on('connected', async () => {
         specialty: 'Cognitive Behavioral Therapy',
         status: 'approved',
         avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=60&h=60&fit=crop&crop=face',
-        booked: false,
+        booked: false
       },
       {
         name: 'Dr. Sandra',
         specialty: 'Mindfulness',
         status: 'approved',
         avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-        booked: false,
-      },
+        booked: false
+      }
     ]);
     console.log('Seeded default therapists');
   }
@@ -126,6 +140,9 @@ app.use('/api/goals', goalsRouter);
 import currentFocusRouter from './routes/currentFocus.js';
 app.use('/api/current-focus', currentFocusRouter);
 
+import authRouter from './auth/index.js';
+app.use('/api/auth', authRouter);
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });

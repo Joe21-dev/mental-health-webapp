@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Eye, EyeOff, User, Mail, Lock, Brain } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://localhost:4001';
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,6 +20,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -44,9 +46,9 @@ const Signup = () => {
       setSuccess(data.message || 'Signup successful! You can now log in.');
       setFormData({ name: '', email: '', password: '' });
       setShowLogin(true);
+      setLoading(false); // Move before navigation/UI update for instant feedback
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -64,13 +66,11 @@ const Signup = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
       setSuccess(data.message || 'Login successful!');
-      // Store token in localStorage (or context)
       localStorage.setItem('token', data.token);
-      // Redirect or update UI as needed
-      window.location.href = '/platform';
+      setLoading(false); // Move before navigation for instant feedback
+      navigate('/platform');
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -80,17 +80,9 @@ const Signup = () => {
 
   return (
     <div className="flex min-h-screen overflow-hidden bg-gray-50">
-      {/* Left side - Image (hidden on mobile) */}
-      <div className="relative hidden overflow-hidden lg:flex lg:w-1/2">
-        <div className="absolute inset-0 z-10 bg-gradient-to-br from-blue-400/20 to-purple-400/20"></div>
-        <img 
-          src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
-          alt="Healthcare professional"
-          className="object-cover w-full h-full"
-        />
-      </div>
-      {/* Right side - Form */}
-      <div className="flex items-center justify-center w-full min-h-screen px-4 py-8 lg:w-1/2 sm:py-12 sm:px-6 lg:p-8">
+      {/* Right side - Form only, no avatar dropdown */}
+      <div className="flex flex-col items-center justify-center w-full min-h-screen px-4 py-8 lg:w-full sm:py-12 sm:px-6 lg:p-8">
+        {/* Auth Form Switcher and Forms */}
         <div className="relative flex flex-col items-center justify-center w-full max-w-md mx-auto">
           {/* X Icon to close and go home */}
           <button

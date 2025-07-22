@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const BACKEND_URL = 'http://192.168.88.235:5000'; // Use your backend IP
+
 const cardImages = {
   songs: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', // music poster
   podcasts: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80', // podcast mic
@@ -54,17 +56,21 @@ const Resources = () => {
   // Fetch resources with filter or search
   useEffect(() => {
     setLoading(true);
-    let url = 'http://localhost:5000/api/resources';
+    let url = `${BACKEND_URL}/api/resources`;
     if (filterType !== 'all') {
-      url = `http://localhost:5000/api/resources/filter/${filterType}`;
+      url = `${BACKEND_URL}/api/resources/filter/${filterType}`;
     } else if (searchTerm) {
-      url = `http://localhost:5000/api/resources/search?q=${encodeURIComponent(searchTerm)}`;
+      url = `${BACKEND_URL}/api/resources/search?q=${encodeURIComponent(searchTerm)}`;
     }
     fetch(url)
       .then(res => res.json())
       .then(data => {
         const grouped = { songs: [], podcasts: [], ebooks: [], videos: [] };
         data.forEach(r => {
+          // Fix resource URL for playback
+          if (r.url && r.url.startsWith('/api/resources/file/')) {
+            r.url = `${BACKEND_URL}${r.url}`;
+          }
           if (r.type === 'song') grouped.songs.push(r);
           else if (r.type === 'podcast') grouped.podcasts.push(r);
           else if (r.type === 'ebook') grouped.ebooks.push(r);
@@ -79,11 +85,46 @@ const Resources = () => {
       });
   }, [filterType, searchTerm]);
 
+  // Sync active resource across tabs/devices using localStorage
+  useEffect(() => {
+    const storedActive = localStorage.getItem('activeResource');
+    if (storedActive) {
+      try {
+        setActiveResource(JSON.parse(storedActive));
+      } catch {}
+    }
+  }, []);
+  useEffect(() => {
+    if (activeResource) {
+      localStorage.setItem('activeResource', JSON.stringify(activeResource));
+    } else {
+      localStorage.removeItem('activeResource');
+    }
+  }, [activeResource]);
+
+  // Delete resource handler
+  const handleDeleteResource = async (resource) => {
+    if (!window.confirm('Delete this resource?')) return;
+    try {
+      await fetch(`${BACKEND_URL}/api/resources/${resource._id}`, { method: 'DELETE' });
+      setResourceData(prev => {
+        const grouped = { ...prev };
+        Object.keys(grouped).forEach(type => {
+          grouped[type] = grouped[type].filter(r => r._id !== resource._id);
+        });
+        return grouped;
+      });
+      if (activeResource && activeResource._id === resource._id) setActiveResource(null);
+    } catch {
+      alert('Failed to delete resource');
+    }
+  };
+
   // Defensive check for activeResource in ActiveCard
   const ActiveCard = () => {
     if (!activeResource) return (
-      <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex items-center justify-center min-h-[200px]">
-        <span className="text-lg font-semibold">No resource selected</span>
+      <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
+        <span className="text-lg font-semibold">Select a resource:</span>
       </div>
     );
     // Song or Podcast: audio player
@@ -188,7 +229,7 @@ const Resources = () => {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowPdfModal(false)}>
               <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-2xl relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
                 <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowPdfModal(false)} aria-label="Close"><X size={24} /></button>
-                <iframe src={activeResource.url.startsWith('/resources/') ? `${window.location.origin}${activeResource.url}` : activeResource.url} title="E-book PDF" width="100%" height="600px" style={{border:0}}></iframe>
+                <iframe src={activeResource.url} title="E-book PDF" width="100%" height="600px" style={{border:0}}></iframe>
               </div>
             </div>
           )}
@@ -254,7 +295,10 @@ const Resources = () => {
                       <div className="font-semibold text-blue-700">{song.title}</div>
                       <div className="text-xs text-gray-500">{song.artist} • {song.duration}</div>
                     </div>
-                    <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`}><Play size={16} /></button>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`}><Play size={16} /></button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -263,6 +307,7 @@ const Resources = () => {
         )}
       </div>
     </div>
+    
   );
 
   const PodcastsCard = () => (
@@ -300,7 +345,10 @@ const Resources = () => {
                       <div className="font-semibold text-purple-700">{podcast.title}</div>
                       <div className="text-xs text-gray-500">{podcast.host} • {podcast.duration} • {podcast.type}</div>
                     </div>
-                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`}><Play size={16} /></button>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`}><Play size={16} /></button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(podcast); }} title="Delete"><X size={16} /></button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -342,7 +390,10 @@ const Resources = () => {
                       <div className="font-semibold text-green-700">{book.title}</div>
                       <div className="text-xs text-gray-500">{book.author}</div>
                     </div>
-                    <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(book); }} title="Delete"><X size={16} /></button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -384,7 +435,10 @@ const Resources = () => {
                       <div className="font-semibold text-orange-700">{video.title}</div>
                       <div className="text-xs text-gray-500">{video.speaker} • {video.duration}</div>
                     </div>
-                    <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -432,7 +486,7 @@ const Resources = () => {
       // Use XMLHttpRequest for progress
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
-        xhr.open('POST', 'http://localhost:5000/api/resources/upload');
+        xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -597,13 +651,9 @@ const Resources = () => {
             </div>
           </div>
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-medium">A</span>
+            <span className="text-white font-medium">U</span>
           </div>
-          <img 
-            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" 
-            alt="Profile" 
-            className="w-10 h-10 rounded-full"
-          />
+          
         </div>
       </nav>
       </div>

@@ -40,25 +40,6 @@ const Scheduler = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- Mock state for new cards and tracker ---
-  // const [currentFocus] = useState({
-  //   title: 'Anxiety Recovery',
-  //   startDate: '2025-07-01',
-  // });
-  // const [currentDay] = useState(20); // Example: today is day 20
-  // const [totalDays] = useState(30); // Example: 30-day program
-  // const [streak] = useState(7); // Example: 7-day streak
-  // const [longestStreak] = useState(12); // Example: longest streak
-  // // Example consistency map for calendar tracker
-  // const [consistencyMap] = useState({
-  //   2025: {
-  //     6: { // July (0-indexed)
-  //       1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true,
-  //       8: false, 9: true, 10: true, 11: true, 12: true, 13: true, 14: true,
-  //       15: true, 16: true, 17: true, 18: true, 19: true, 20: true
-  //     }
-  //   }
-  // });
 
   // Fetch schedules, goals, check-ins, and current focus from backend in real time
   useEffect(() => {
@@ -356,13 +337,9 @@ const Scheduler = () => {
           />
         </div>
         <div className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-full">
-          <span className="font-medium text-white">A</span>
+          <span className="font-medium text-white">U</span>
         </div>
-        <img 
-          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" 
-          alt="Profile" 
-          className="w-10 h-10 rounded-full"
-        />
+        
       </div>
     </nav>
   );
@@ -379,11 +356,9 @@ const Scheduler = () => {
         </div>
         <span className="font-semibold">Scheduler</span>
       </div>
-      <img 
-        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face" 
-        alt="Profile" 
-        className="w-8 h-8 rounded-full"
-      />
+       <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+				<span className="text-white font-medium">U</span>
+			  </div>
     </header>
   );
   const MobileNavDrawer = () => (
@@ -609,26 +584,14 @@ const Scheduler = () => {
             >
               <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => { setShowForm(false); setEditingItem(null); }} aria-label="Close">&times;</button>
               <h3 className="mb-2 text-lg font-semibold">{editingItem ? `Edit ${formType === 'goal' ? 'Goal' : 'Schedule'}` : `Add ${formType === 'goal' ? 'Goal' : 'Schedule'}`}</h3>
-              <input name="title" value={form.title} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Title" : "Schedule Title"} className="w-full px-3 py-2 mb-2 border rounded" required />
-              <textarea name="description" value={form.description} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Description" : "Schedule Description"} className="w-full px-3 py-2 mb-2 border rounded" />
-              <input name="date" type="date" value={form.date} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded" required={formType === 'schedule'} />
+              <input name="title" value={form.title} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Title" : "Schedule Title"} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
+              <textarea name="description" value={form.description} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Description" : "Schedule Description"} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" />
+              <input name="date" type="date" value={form.date} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required={formType === 'schedule'} />
               {formType === 'schedule' && (
-                <input name="time" type="time" value={form.time || ''} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded" required />
+                <input name="time" type="time" value={form.time || ''} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
               )}
-              {formType === 'goal' && (
-                <select name="type" value={form.type} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded">
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              )}
-              <select name="color" value={form.color} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border rounded">
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-                <option value="orange">Orange</option>
-                <option value="purple">Purple</option>
-                <option value="red">Red</option>
-              </select>
+             
+              
               <div className="flex justify-end mt-2 space-x-2">
                 <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={() => { setShowForm(false); setEditingItem(null); }}>
                   Cancel

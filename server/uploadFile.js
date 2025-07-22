@@ -6,6 +6,8 @@ import Resource from './models/Resource.js';
 import fs from 'fs';
 import path from 'path';
 import { getAudioVideoDuration, getPdfPageCount } from './detectFileMeta.js';
+import cloudinary from './cloudinaryConfig.js';
+import { v2 as cloudinaryV2 } from 'cloudinary';
 
 const router = express.Router();
 const mongoURI = 'mongodb://localhost:27017/healthapp';
@@ -32,7 +34,7 @@ function detectTypeFromExt(filename) {
   return 'unknown';
 }
 
-// Upload endpoint
+// Upload endpoint (Cloudinary)
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { title } = req.body;
@@ -42,50 +44,33 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Prevent duplicate by name
     const existing = await Resource.findOne({ title });
     if (existing) return res.status(400).json({ error: 'A file with this name already exists.' });
-    // Save file to temp for analysis
-    const tempPath = `./tmp_${Date.now()}_${file.originalname}`;
-    fs.writeFileSync(tempPath, file.buffer);
     // Detect type
     const type = detectTypeFromExt(file.originalname);
     let duration = '', pageCount = 0;
-    if (type === 'song' || type === 'video' || type === 'podcast') {
-      try { duration = await getAudioVideoDuration(tempPath); } catch {}
-    }
-    if (type === 'ebook') {
-      try { pageCount = await getPdfPageCount(tempPath); } catch {}
-    }
-    // Upload to GridFS from temp file (not from buffer)
-    const readStream = fs.createReadStream(tempPath);
-    const uploadStream = gridfsBucket.openUploadStream(file.originalname, {
-      contentType: file.mimetype,
-      metadata: { title, type },
-    });
-    readStream.pipe(uploadStream);
-    uploadStream.on('finish', async (uploadedFile) => {
-      // Ensure type and title are always set and valid
-      if (!type || !title) {
-        fs.unlinkSync(tempPath);
-        return res.status(400).json({ error: 'File type or name is missing.', details: { type, title } });
+    // Upload to Cloudinary
+    const uploadResult = await cloudinaryV2.uploader.upload_stream({
+      resource_type: type === 'video' ? 'video' : (type === 'ebook' ? 'raw' : 'auto'),
+      folder: 'healthapp_resources',
+      public_id: title.replace(/\s+/g, '_'),
+    }, async (error, result) => {
+      if (error || !result) {
+        return res.status(500).json({ error: 'Cloudinary upload failed', details: error });
       }
-      const url = `/api/resources/file/${uploadedFile._id}`;
-      const safeType = typeof type === 'string' && type.trim() ? type : 'unknown';
-      const safeTitle = typeof title === 'string' && title.trim() ? title : 'untitled';
+      // Save resource with Cloudinary URL
       const resource = new Resource({
-        type: safeType,
-        title: safeTitle,
-        duration: duration || undefined,
-        url,
-        ...(safeType === 'ebook' ? { pageCount } : {})
+        type,
+        title,
+        duration,
+        url: result.secure_url,
+        ...(type === 'ebook' ? { pageCount } : {})
       });
       try {
         await resource.save();
-        fs.unlinkSync(tempPath);
         res.status(201).json({
           message: 'File uploaded and resource saved successfully.',
           resource
         });
       } catch (err) {
-        fs.unlinkSync(tempPath);
         res.status(400).json({
           error: 'Resource validation failed.',
           details: err.errors || err.message,
@@ -93,10 +78,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         });
       }
     });
-    uploadStream.on('error', (err) => {
-      fs.unlinkSync(tempPath);
-      res.status(500).json({ error: 'GridFS upload failed.', details: err.message });
-    });
+    // Pipe file buffer to Cloudinary
+    const stream = require('stream');
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(file.buffer);
+    bufferStream.pipe(uploadResult);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

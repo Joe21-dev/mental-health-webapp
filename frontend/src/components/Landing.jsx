@@ -5,13 +5,13 @@ import {
   Brain,
 } from 'lucide-react';
 const navItems = [
-  { name: 'Home', path: '/platform' },
-  { name: 'About us', path: '#' },
-  { name: 'Platform', path: '/platform' },
+  { name: 'Home', path: '/' },
+  { name: 'About us', path: '/about' },
+  { name: 'Platform', path: '/signup' },
 
 ];
 
-// Animation keyframes injected into the document
+// Animation keyframes 
 const Animations = () => (
   <style>{`
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -55,7 +55,7 @@ const Landing = () => {
                 <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => navigate('/')}> {/* Home icon clickable */}
                     <Brain className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-semibold text-gray-900">Siha.</span>
+                <span className="text-xl font-semibold text-gray-900">BHai.</span>
                 
               </div>
             </div>
@@ -185,7 +185,8 @@ const Landing = () => {
           <div className="text-right">
             <p className="text-xs xs:text-sm text-gray-600 mb-2">Towards a New</p>
             <p className="text-base xs:text-lg font-semibold text-gray-900 mb-4">Holistic Healthstyle</p>
-            <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp">
+            <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp cursor-pointer"
+            onClick={() => window.location.pathname = '/signup'}>
               Explore Pillars
               <ArrowRight className="ml-2 w-4 h-4"  />
             </button>
@@ -196,7 +197,8 @@ const Landing = () => {
           <div className="text-right mr-2 pr-1 xs:pr-2 w-full">
             <p className="text-xs xs:text-sm text-gray-600 mb-2">Towards a New</p>
             <p className="text-base xs:text-lg font-semibold text-gray-900 mb-4">Holistic Healthstyle</p>
-            <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp">
+            <button className="inline-flex items-center text-xs xs:text-sm text-gray-700 hover:text-gray-900 transition-colors animate-slideUp cursor-pointer"
+            onClick={() => window.location.pathname = '/signup'}>
               Explore Pillars
               <ArrowRight className="ml-2 w-4 h-4" />
             </button>

@@ -1,22 +1,19 @@
-// Express backend for signup/login
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-require('dotenv').config();
-const connectDB = require('./mongo');
-const User = require('./user.model');
+// Express router for signup/login
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import cors from 'cors';
+import connectDB from './mongo.js';
+import User from './user.model.js';
 
-const app = express();
-const PORT = process.env.PORT || 4001;
+const authRouter = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
-app.use(cors());
-app.use(express.json());
-connectDB();
+authRouter.use(cors());
+authRouter.use(express.json());
 
 // Signup
-app.post('/signup', async (req, res) => {
+authRouter.post('/signup', async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) return res.status(400).json({ error: 'All fields required.' });
   try {
@@ -32,7 +29,7 @@ app.post('/signup', async (req, res) => {
 });
 
 // Login
-app.post('/login', async (req, res) => {
+authRouter.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'All fields required.' });
   try {
@@ -47,4 +44,4 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Auth server running on port ${PORT}`));
+export default authRouter;

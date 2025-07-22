@@ -93,13 +93,9 @@ const Chat = () => {
              
             </div>
             <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium">A</span>
+              <span className="text-white font-medium">U</span>
             </div>
-            <img 
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full"
-            />
+            
           </div>
         </nav>
         </div>
@@ -116,11 +112,9 @@ const Chat = () => {
           </div>
           <span className="font-semibold">Health-Chat.ai</span>
         </div>
-        <img 
-          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face" 
-          alt="Profile" 
-          className="w-8 h-8 rounded-full"
-        />
+         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+				<span className="text-white font-medium">U</span>
+			  </div>
       </header>
     );
     const MobileNavDrawer = () => (
@@ -187,7 +181,7 @@ const Chat = () => {
     const Chats = () => (
       <div className="flex flex-col items-center justify-end flex-1 px-2 mt-12 mb-18 md:pb-0 w-full">
         {/* Chat messages visually appealing */}
-        <div className="w-full max-w-2xl flex-1 overflow-y-auto bg-gradient-to-b from-blue-50 to-white rounded-2xl shadow-inner p-4 mb-4 border border-blue-100" style={{ minHeight: 300, maxHeight: 400 }}>
+        <div className="w-full max-w-2xl flex-1 overflow-y-auto bg-gray-50 rounded-2xl shadow-lg p-4 mb-4 border-none" style={{ minHeight: 300, maxHeight: 400 }}>
           {messages.length === 0 && (
             <div className="text-center text-gray-400 py-12">No messages yet. Start the conversation!</div>
           )}

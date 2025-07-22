@@ -16,7 +16,7 @@ router.post('/chat', async (req, res) => {
   }
   try {
     // Use the latest Gemini model and endpoint (as of July 2025)
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=' + apiKey, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

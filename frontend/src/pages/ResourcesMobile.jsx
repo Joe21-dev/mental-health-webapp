@@ -83,11 +83,9 @@ const ResourcesMobile = () => {
         </div>
         <span className="font-semibold">Resources</span>
         </div>
-        <img 
-        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face" 
-        alt="Profile" 
-        className="w-8 h-8 rounded-full"
-        />
+         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+				<span className="text-white font-medium">U</span>
+			  </div>
       </header>
       );
       const MobileNavDrawer = () => (
@@ -157,43 +155,43 @@ const ResourcesMobile = () => {
   const ActiveCard = () => {
     if (!activeResource || typeof activeResource !== 'object' || !activeResource.type) {
       return (
-        <div className="w-full mx-auto mt-2 mb-4 bg-black rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
-          <span className="text-lg font-semibold text-white">No resource selected</span>
+        <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+          <span className="text-lg font-semibold text-white">Select a resource:</span>
         </div>
       );
     }
     if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
       return (
-        <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '180px', backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
-          <div className={`absolute inset-0 rounded-2xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
-          <div className="relative z-10 w-full flex flex-col items-center">
-            <h3 className="mb-2 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
+        <div className="w-full mx-auto  mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '220px', backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+          <div className={`absolute inset-0  rounded-2xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
+          <div className="relative z-10  w-full flex flex-col items-center">
+            <h3 className="mb-2 mt-3 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
             <div className="text-center text-gray-200 mb-2">{activeResource.type === 'song' ? activeResource.artist : activeResource.host}</div>
             <audio
               ref={audioRef}
               controls
               autoPlay={isPlaying}
               src={activeResource.url}
-              className="w-full mb-2"
+              className="w-60 mb-2"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             >
               Your browser does not support the audio element.
             </audio>
-            <button className="w-full py-2 bg-blue-500 text-white rounded-full mt-2" onClick={() => setActiveResource(null)}>Close Player</button>
+            <button className="w-70 py-2 bg-blue-500 text-white rounded mt-2" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
         </div>
       );
     }
     if (activeResource.type === 'video' && activeResource.url) {
       return (
-        <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '180px', backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+        <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '320px', backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className="absolute inset-0 rounded-2xl bg-orange-900/60"></div>
           <div className="relative z-10 w-full flex flex-col items-center">
-            <h3 className="mb-2 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
-            <video controls autoPlay src={activeResource.url} className="w-full mb-2 rounded-xl" style={{maxHeight: '80px'}}></video>
-            <div className="text-center text-gray-200 mb-2">Speaker: {activeResource.speaker}</div>
-            <button className="w-full py-2 bg-orange-500 text-white rounded-full mt-2" onClick={() => setActiveResource(null)}>Close Player</button>
+            <h3 className="mb-2 mt-6 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
+            <video controls autoPlay src={activeResource.url} className="w-75 mb-2 rounded-xl" style={{maxHeight: '180px'}}></video>
+            <div className="text-center text-gray-200 mb-1">Speaker: {activeResource.speaker}</div>
+            <button className="w-70 py-2 bg-orange-500 text-white rounded mt-2 mb-4" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
         </div>
       );
@@ -205,7 +203,7 @@ const ResourcesMobile = () => {
           <div className="relative z-10 w-full flex flex-col items-center">
             <h3 className="mb-2 text-lg font-bold text-white text-center">E-book: {activeResource.title}</h3>
             <div className="text-center text-gray-200 mb-2">Author: {activeResource.author}</div>
-            <button className="w-full py-2 bg-green-500 text-white rounded-full mt-2" onClick={() => setShowPdfModal(true)}>Read PDF</button>
+            <button className="w-70 py-2 bg-green-500 text-white rounded mt-2" onClick={() => setShowPdfModal(true)}>Read PDF</button>
             {showPdfModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowPdfModal(false)}>
                 <div className="bg-white rounded-2xl shadow-xl p-2 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
@@ -224,7 +222,7 @@ const ResourcesMobile = () => {
   // ResourceCard: show scrollable modal of all resources when title is clicked, add chevron icon to indicate clickable
   const ResourceCard = ({ type, title, color, items, icon }) => {
     return (
-      <div className={`rounded-2xl shadow-lg overflow-hidden mb-4`} style={{backgroundImage: `url(${cardImages[type]})`, backgroundSize: 'cover', backgroundPosition: 'center', minHeight: '140px', maxHeight: '180px'}}>
+      <div className={`rounded-2xl shadow-lg overflow-hidden mb-2`} style={{backgroundImage: `url(${cardImages[type]})`, backgroundSize: 'cover', backgroundPosition: 'center', minHeight: '140px', maxHeight: '180px'}}>
         <div className={`p-4 bg-${color}-900/70 rounded-2xl h-full flex flex-col justify-between`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowList(type)}>
@@ -234,6 +232,7 @@ const ResourcesMobile = () => {
             {icon}
           </div>
         </div>
+        
         {/* Modal for all resources of this type */}
         {showList === type && (
           <div className="fixed inset-0 z-50 flex px-6 items-center justify-center bg-black/70" onClick={() => setShowList(null)}>
@@ -247,9 +246,12 @@ const ResourcesMobile = () => {
                       <div className={`font-semibold text-${color}-700`}>{item.title}</div>
                       <div className="text-xs text-gray-500">{type === 'songs' ? item.artist : type === 'podcasts' ? item.host : type === 'ebooks' ? item.author : item.speaker}</div>
                     </div>
-                    <button className={`p-2 bg-${color}-500 text-white rounded-full ml-2`}>
-                      {type === 'ebooks' ? <BookOpen size={16} /> : <Play size={16} />}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-${color}-500 text-white rounded-full ml-2`}>
+                        {type === 'ebooks' ? <BookOpen size={16} /> : <Play size={16} />}
+                      </button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(item); }} title="Delete"><X size={16} /></button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -257,8 +259,11 @@ const ResourcesMobile = () => {
           </div>
         )}
       </div>
+      
     );
+
   };
+
 
   const handleUploadChange = (e) => {
     const { name, value, files } = e.target;
@@ -333,6 +338,41 @@ const ResourcesMobile = () => {
     }
   };
 
+  // Sync active resource across tabs/devices using localStorage
+  useEffect(() => {
+    const storedActive = localStorage.getItem('activeResource');
+    if (storedActive) {
+      try {
+        setActiveResource(JSON.parse(storedActive));
+      } catch {}
+    }
+  }, []);
+  useEffect(() => {
+    if (activeResource) {
+      localStorage.setItem('activeResource', JSON.stringify(activeResource));
+    } else {
+      localStorage.removeItem('activeResource');
+    }
+  }, [activeResource]);
+
+  // Delete resource handler
+  const handleDeleteResource = async (resource) => {
+    if (!window.confirm('Delete this resource?')) return;
+    try {
+      await fetch(`http://localhost:5000/api/resources/${resource._id}`, { method: 'DELETE' });
+      setResourceData(prev => {
+        const grouped = { ...prev };
+        Object.keys(grouped).forEach(type => {
+          grouped[type] = grouped[type].filter(r => r._id !== resource._id);
+        });
+        return grouped;
+      });
+      if (activeResource && activeResource._id === resource._id) setActiveResource(null);
+    } catch {
+      alert('Failed to delete resource');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Mobile Header */}
@@ -345,7 +385,7 @@ const ResourcesMobile = () => {
         {showInfo && (
           <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
             <p className="text-sm">
-              Welcome to the Resources platform! Here you can find various materials to assist you. Use the upload button to add new resources.
+              Browse and play songs, podcasts, e-books, and videos to support your mental health. Click a card title to see all resources. Select any item to play or read instantly.
             </p>
           </div>
         )}
@@ -369,6 +409,7 @@ const ResourcesMobile = () => {
           })}
         </div>
       </div>
+      <div className='mb-20'><p></p></div>
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
       {/* Floating Upload Button */}
@@ -382,8 +423,8 @@ const ResourcesMobile = () => {
       </button>
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowUploadModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50  flex items-center justify-center bg-black/70" onClick={() => setShowUploadModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-4 mx-6 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
             <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black" onClick={() => setShowUploadModal(false)} aria-label="Close">
               <X size={20} />
             </button>

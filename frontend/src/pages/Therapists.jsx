@@ -51,6 +51,16 @@ export default function Therapists() {
 			.then(data => setTherapyTracker(data));
 	}, []);
 
+	// Info alert for user guidance
+	  const [showInfo, setShowInfo] = useState(true);
+	  useEffect(() => {
+		if (showInfo) {
+		  const timer = setTimeout(() => setShowInfo(false), 12000); // 12 seconds
+		  return () => clearTimeout(timer);
+		}
+	  }, [showInfo]);
+	
+
 	function handleChange(e) {
 		const { name, value } = e.target;
 		setForm(f => ({ ...f, [name]: value }));
@@ -198,13 +208,9 @@ export default function Therapists() {
 				/>
 			  </div>
 			  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-				<span className="text-white font-medium">A</span>
+				<span className="text-white font-medium">U</span>
 			  </div>
-			  <img 
-				src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face" 
-				alt="Profile" 
-				className="w-10 h-10 rounded-full"
-			  />
+			  
 			</div>
 		  </nav>
 		  </div>
@@ -212,31 +218,18 @@ export default function Therapists() {
 
 	return (
 		<div className="min-h-screen bg-gray-100 pt-6 px-6 py-2">
+			
 			<Desktop />
+			{/* Info alert */}
+			{showInfo && (
+			<div className="mb-4 p-4 mx-6 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
+				<p className="text-sm">
+					Hello!!! Book a doctor easily by clicking the book button.Ensure you have added your condition. Thank You.
+				</p>
+			</div>
+			)}
 			<div className="max-w-5xl mx-auto grid grid-cols-2 gap-12">
-				{/* Left column: Current Therapy + Therapy Tracker */}
-				<div className="flex flex-col gap-8">
-					{/* Current Therapy Card */}
-					<div className="p-6 bg-purple-50 rounded-2xl shadow border border-purple-100 flex flex-col justify-between">
-						<h3 className="font-bold text-purple-700 mb-2 flex items-center"><Brain className="w-5 h-5 mr-2 text-purple-500" /> Current Therapy</h3>
-						<div className="mb-1 text-lg font-semibold text-gray-800">{therapyTracker?.therapy || recommendedTherapy || 'Cognitive Behavioral Therapy'}</div>
-						<div className="mb-1 text-sm text-gray-600">Specialty: {therapyTracker?.doctor?.specialty || 'Anxiety Recovery'}</div>
-						<div className="mb-1 text-sm text-gray-600">Started: {therapyTracker?.date || '2025-07-01'}</div>
-						<div className="mt-2 text-xs text-gray-400">Stay consistent for best results!</div>
-					</div>
-					{/* Therapy Tracker Card (from Dashboard.jsx) */}
-					<div className="p-6 bg-blue-50 rounded-2xl shadow border border-blue-100">
-						<h3 className="font-bold text-blue-700 mb-2 flex items-center"><BookOpen className="w-5 h-5 mr-2 text-blue-500" /> Therapy Tracker</h3>
-						<div className="mb-1">Doctor: {therapyTracker?.doctor?.name || 'Dr. Smith'}</div>
-						<div className="mb-1">Day: {therapyTracker?.day || 20}</div>
-						<div className="mb-1">Date: {therapyTracker?.date || '2025-07-20'}</div>
-						<div className="mb-1">Description: {therapyTracker?.description || 'Weekly session for anxiety recovery.'}</div>
-						<div className="mb-1">Streak: <span className="font-bold text-green-600">{therapyTracker?.streak || 7}</span> days</div>
-						<div className="mb-1">Longest streak: <span className="font-bold text-blue-600">{therapyTracker?.longestStreak || 12}</span> days</div>
-						<div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : '2025-07-20 09:00'}</div>
-					</div>
-				</div>
-				{/* Right column: Doctors List and Modals (desktop only) */}
+				{/* Left column: Doctors List and Modals (desktop only) */}
 				<div>
 					<div className="flex justify-between items-center mb-4">
 						<h2 className="font-bold text-xl">Doctors</h2>
@@ -272,7 +265,7 @@ export default function Therapists() {
 											<div className="text-sm text-gray-600">{d.specialty || ''}</div>
 											<div className="text-xs text-gray-400">{d.status || ''}</div>
 											{d.booked && d.bookingInfo && (
-												<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date} ({d.bookingInfo.day})<br />{d.bookingInfo.description}</div>
+												<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
 											)}
 										</div>
 									</div>
@@ -349,7 +342,29 @@ export default function Therapists() {
 						</div>
 					)}
 				</div>
+				{/* Right column: Current Therapy + Therapy Tracker */}
+				<div className="flex flex-col gap-8">
+					{/* Current Therapy Card */}
+					<div className="p-6 bg-purple-50 rounded-2xl shadow border border-purple-100 flex flex-col justify-between">
+						<h3 className="font-bold text-purple-700 mb-2 flex items-center"><Brain className="w-5 h-5 mr-2 text-purple-500" /> Current Therapy</h3>
+						<div className="mb-1 text-lg font-semibold text-gray-800">{therapyTracker?.therapy || recommendedTherapy || ''}</div>
+						<div className="mb-1 text-sm text-gray-600">Specialty: {therapyTracker?.doctor?.specialty || ''}</div>
+						<div className="mb-1 text-sm text-gray-600">Started: {therapyTracker?.date || ''}</div>
+						<div className="mt-2 text-xs text-gray-400">Stay consistent for best results!</div>
+					</div>
+					{/* Therapy Tracker Card (from Dashboard.jsx) */}
+					<div className="p-6 bg-blue-50 rounded-2xl shadow border border-blue-100">
+						<h3 className="font-bold text-blue-700 mb-2 flex items-center"><BookOpen className="w-5 h-5 mr-2 text-blue-500" /> Therapy Tracker</h3>
+						<div className="mb-1">Doctor: {therapyTracker?.doctor?.name || ''}</div>
+						<div className="mb-1">Description: {therapyTracker?.therapy || recommendedTherapy || ''}</div>
+						<div className="mb-1">Streak: <span className="font-bold text-green-600">{therapyTracker?.streak || 0}</span> days</div>
+						<div className="mb-1">Longest streak: <span className="font-bold text-blue-600">{therapyTracker?.longestStreak || 0}</span> days</div>
+						<div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : ''}</div>
+					</div>
+				</div>
 			</div>
+			
 		</div>
+		
 	);
 }

@@ -25,6 +25,15 @@ export default function TherapistsMobile() {
 		return () => window.removeEventListener('scroll', handleScroll);
 	  }, []);
 
+	  // Info alert for user guidance
+		const [showInfo, setShowInfo] = useState(true);
+		useEffect(() => {
+		  if (showInfo) {
+			const timer = setTimeout(() => setShowInfo(false), 12000); // 12 seconds
+			return () => clearTimeout(timer);
+		  }
+		}, [showInfo]);
+
 	useEffect(() => {
 		setLoading(true);
 		setError(null);
@@ -134,11 +143,9 @@ export default function TherapistsMobile() {
 			</div>
 			<span className="font-semibold">Therapists</span>
 		  </div>
-		  <img 
-			src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face" 
-			alt="Profile" 
-			className="w-8 h-8 rounded-full"
-		  />
+		   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+				<span className="text-white font-medium">U</span>
+			</div>
 		</header>
 	  );
 	  const MobileNavDrawer = () => (
@@ -206,6 +213,14 @@ export default function TherapistsMobile() {
 		<div className="min-h-screen bg-gray-100 ">
 			<MobileHeader />
 			<MobileNavDrawer />
+			{/* Info alert */}
+			{showInfo && (
+			<div className="mb-4 p-4 mx-6 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
+				<p className="text-sm">
+					Hello!!! Book a doctor easily by clicking the book button.Ensure you have added your condition. Thank You.
+				</p>
+			</div>
+			)}
 			<div className='px-4 py-4'>
 			<h2 className="font-bold text-xl mb-4">Doctors</h2>
 			<div className="flex gap-2 mb-4">
@@ -232,14 +247,14 @@ export default function TherapistsMobile() {
 									className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base`}
 									style={{ background: stringToColor(d.name) }}
 								>
-									{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
+									{d.name ? d.name.trim()[4].toUpperCase() : 'D'}
 								</div>
 								<div>
 									<div className="font-semibold text-sm">{d.name}</div>
 									<div className="text-xs text-gray-600">{d.specialty || ''}</div>
 									<div className="text-xs text-gray-400">{d.status || ''}</div>
 									{d.booked && d.bookingInfo && (
-										<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date} ({d.bookingInfo.day})<br />{d.bookingInfo.description}</div>
+										<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
 									)}
 								</div>
 							</div>
@@ -260,8 +275,8 @@ export default function TherapistsMobile() {
 					>
 						<button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowForm(false)} aria-label="Close">&times;</button>
 						<h3 className="font-semibold text-base mb-2">Add Doctor</h3>
-						<input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border rounded px-2 py-1 w-full mb-2 text-sm" />
-						<input name="specialty" value={form.specialty} onChange={handleChange} placeholder="Specialty" className="border rounded px-2 py-1 w-full mb-2 text-sm" />
+						<input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border-none bg-gray-50 shadow-xl rounded px-2 py-1 w-full mb-2 text-sm" />
+						<input name="specialty" value={form.specialty} onChange={handleChange} placeholder="Specialty" className="border-none bg-gray-50 shadow-xl rounded px-2 py-1 w-full mb-2 text-sm" />
 						<div className="flex justify-end space-x-2 mt-2">
 							<button type="button" className="px-3 py-1 rounded bg-gray-200 text-xs" onClick={() => setShowForm(false)}>
 								Cancel
@@ -295,7 +310,7 @@ export default function TherapistsMobile() {
 					>
 						<button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowUserForm(false)} aria-label="Close">&times;</button>
 						<h3 className="font-semibold text-base mb-2">Add Your Condition</h3>
-						<input name="condition" value={userCondition} onChange={handleChange} placeholder="Your Condition (e.g. Anxiety, Depression)" className="border border-gray-600 bg-gray-50 rounded px-2 py-1 w-full mb-2 text-sm" />
+						<input name="condition" value={userCondition} onChange={handleChange} placeholder="Your Condition (e.g. Anxiety, Depression)" className="border-none shadow-lg bg-gray-50 rounded px-2 py-1 w-full mb-2 text-sm" />
 						{userCondition && (
 							<div className="text-sm text-blue-600 mb-2">Recommended Therapy: <span className="font-bold">{recommendedTherapy}</span></div>
 						)}
@@ -311,24 +326,24 @@ export default function TherapistsMobile() {
 				</div>
 			)}
 			{/* Cards below doctors: 2-column grid */}
-			<div className="grid grid-cols-2 gap-4 mt-2">
+			<div className="grid grid-cols-2 gap-4 mt-2 mb-20">
 				{/* Current Therapy Card */}
 				<div className="p-4 bg-gray-50 rounded-xl shadow-lg border border-purple-100 flex flex-col justify-between">
 					<h3 className="font-bold text-purple-700 mb-1 flex items-center text-sm"><Brain className="w-4 h-4 mr-1 text-purple-500" /> Current Therapy</h3>
-					<div className="mb-1 text-base font-semibold text-gray-800">{therapyTracker?.doctor?.name || 'Cognitive Behavioral Therapy'}</div>
-					<div className="mb-1 text-xs text-gray-600">Specialty: {therapyTracker?.doctor?.specialty || 'Anxiety Recovery'}</div>
-					<div className="mb-1 text-xs text-gray-600">Started: {therapyTracker?.date || '2025-07-01'}</div>
+					<div className="mb-1 text-base font-semibold text-gray-800">{therapyTracker?.doctor?.therapy || recommendedTherapy || ''}</div>
+					<div className="mb-1 text-xs text-gray-600">Specialty: {therapyTracker?.doctor?.specialty || ''}</div>
+					<div className="mb-1 text-xs text-gray-600">Started: {therapyTracker?.date || ''}</div>
 					<div className="mt-1 text-xs text-gray-400">Stay consistent for best results!</div>
 				</div>
 				{/* Therapy Tracker Card */}
 				<div className="p-4 bg-gray-50 rounded-xl shadow-lg border border-blue-100">
 					<h3 className="font-bold text-blue-700 mb-1 flex items-center text-sm"><BookOpen className="w-4 h-4 mr-1 text-blue-500" /> Therapy Tracker</h3>
-					<div className="mb-1 text-xs">Doctor: {therapyTracker?.doctor?.name || 'Dr. ____'}</div>
-					<div className="mb-1 text-xs">Date: {therapyTracker?.date || '_____'}</div>
-					<div className="mb-1 text-xs">Description: {therapyTracker?.description || 'Weekly session for anxiety recovery.'}</div>
+					<div className="mb-1 text-xs">Doctor: {therapyTracker?.doctor?.name || 'Dr. '}</div>
+					<div className="mb-1 text-xs">Date: {therapyTracker?.date || ' '}</div>
+					<div className="mb-1 text-xs">Description: {therapyTracker?.therapy || recommendedTherapy || ''}</div>
 					<div className="mb-1 text-xs">Streak: <span className="font-bold text-green-600">{therapyTracker?.streak || 0}</span> days</div>
 					<div className="mb-1 text-xs">Longest streak: <span className="font-bold text-blue-600">{therapyTracker?.longestStreak || 0}</span> days</div>
-					<div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : '2025-07-20 09:00'}</div>
+					<div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : ''}</div>
 				</div>
 			</div>
 			</div>

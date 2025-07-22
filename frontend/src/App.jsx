@@ -8,6 +8,7 @@ import TherapistsMobile from './pages/TherapistsMobile';
 import Signup from './pages/Signup';
 import { ResourcesRouteWrapper } from './ResourcesRouteWrapper';
 import Scheduler from './pages/Scheduler';
+import About from './pages/About';
 import './App.css';
 
 function useIsMobile() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/platform/chat" element={<Chat />} />
           <Route path="/platform/resources" element={<ResourcesRouteWrapper />} />
           <Route path="/platform/scheduler" element={<Scheduler />} />
+          <Route path="/about" element={<About />} />
           {/* Add other /platform/... routes as needed */}
         </Routes>
       </Router>
