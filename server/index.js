@@ -4,68 +4,142 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import fetch from 'node-fetch'; // Needed if using older Node versions
 import geminiChatRouter from './routes/geminiChat.js';
+import healthRoutes from './routes/health.js';
+import doctorsRouter from './routes/therapists.js';
+import resourcesRouterModule from './routes/resources.js';
+import therapyTrackerRouter from './routes/therapyTracker.js';
+import externalResourcesRouter from './routes/externalResources.js';
+import schedulesRouter from './routes/schedules.js';
+import checkinsRouter from './routes/checkins.js';
+import goalsRouter from './routes/goals.js';
+import currentFocusRouter from './routes/currentFocus.js';
+import authRouter from './auth/index.js';
+import Therapist from './models/Therapist.js';
+// Line: After other imports like express, mongoose, cors, etc.
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
 
-// Load environment variables
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Multer config
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5001;
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,        // Production (Vercel frontend)
-  'http://localhost:5173'          // Development (Vite frontend)
+  process.env.FRONTEND_URL,        // Production (e.g., Vercel)
+  'http://localhost:5173'          // Development
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn(`❌ Blocked by CORS: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true
 }));
+
 app.use(express.json());
 
-app.use('/api/gemini-chat', geminiChatRouter);
-
-const PORT = process.env.PORT || 5001;
-
-// Middleware
-
-
-// Serve static files from resources folder
+// Serve static files
 app.use('/resources', express.static(path.join(process.cwd(), 'resources')));
 
-// MongoDB Atlas connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://joedsmith2550:root@cluster0.ruyqyts.mongodb.net/healthapp?retryWrites=true&w=majority&appName=Cluster0';
+// API routes
+app.use('/api/gemini-chat', geminiChatRouter);
+app.use('/api/health', healthRoutes);
+app.use('/api/doctors', doctorsRouter);
+app.use('/api/resources', resourcesRouterModule.default || resourcesRouterModule);
+app.use('/api/therapy-tracker', therapyTrackerRouter);
+app.use('/api/external-resources', externalResourcesRouter);
+app.use('/api/schedules', schedulesRouter);
+app.use('/api/checkins', checkinsRouter);
+app.use('/api/goals', goalsRouter);
+app.use('/api/current-focus', currentFocusRouter);
+app.use('/api/auth', authRouter);
+
+app.get('/api/external', async (req, res) => {
+  res.json({ message: 'External API integration placeholder' });
+});
+
+// Line: Replace your current /api/resources/upload block (~line 120–140)
+app.post('/api/resources/upload', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+
+    const streamUpload = () =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'auto' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        file.stream.pipe(stream);
+      });
+
+    const result = await streamUpload();
+
+    const Resource = (await import('./models/Resource.js')).default;
+    const resource = new Resource({
+      ...req.body,
+      url: result.secure_url
+    });
+
+    await resource.save();
+    res.status(201).json(resource);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Keep Render.com or other services awake
+setInterval(async () => {
+  try {
+    await fetch(`${process.env.BASE_URL}/api/doctors/approve-pending`, { method: 'POST' });
+  } catch (err) {
+    console.log('Heartbeat failed silently:', err.message);
+  }
+}, 10 * 60 * 1000);
+
+// MongoDB connection
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('❌ MONGO_URI is not defined in .env');
+  process.exit(1);
+}
+
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => {
   console.log('✅ MongoDB connected successfully');
-  app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
-})
-
-.catch(err => {
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}).catch(err => {
   console.error('MongoDB connection error:', err.message);
 });
 
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err.message);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.error('MongoDB disconnected');
-});
-
-import Therapist from './models/Therapist.js';
+mongoose.connection.on('error', err => console.error('MongoDB error:', err.message));
+mongoose.connection.on('disconnected', () => console.error('MongoDB disconnected'));
 
 mongoose.connection.on('connected', async () => {
-  console.log('MongoDB connected');
-  // Seed default doctors if collection is empty
+  console.log('MongoDB connected (seed check)');
   const count = await Therapist.countDocuments();
   if (count === 0) {
     await Therapist.create([
@@ -84,78 +158,11 @@ mongoose.connection.on('connected', async () => {
         booked: false
       }
     ]);
-    console.log('Seeded default therapists');
+    console.log('✅ Seeded default therapists');
   }
 });
 
-import healthRoutes from './routes/health.js';
-app.use('/api/health', healthRoutes);
-
-import doctorsRouter from './routes/therapists.js';
-app.use('/api/doctors', doctorsRouter);
-
-import resourcesRouterModule from './routes/resources.js';
-const resourcesRouter = resourcesRouterModule.default || resourcesRouterModule;
-app.use('/api/resources', resourcesRouter);
-
-import therapistsRouter from './routes/therapists.js';
-app.use('/api/therapists', therapistsRouter);
-
-import therapyTrackerRouter from './routes/therapyTracker.js';
-app.use('/api/therapy-tracker', therapyTrackerRouter);
-
+// External API keys (if needed)
 export const EXTERNAL_API_KEYS = {
-  SONGS_API_KEY: 'c9393000f8mshfbaa9c41ffbc3f7p1704d3jsn3435ca190753', // Replace with your real Songs API key
-
+  SONGS_API_KEY: process.env.SONGS_API_KEY || 'your-default-key',
 };
-
-// External resource endpoints
-import externalResourcesRouter from './routes/externalResources.js';
-app.use('/api/external-resources', externalResourcesRouter);
-
-// Placeholder for external API integration
-app.get('/api/external', async (req, res) => {
-  // Example: fetch from an external API
-  // const response = await axios.get('https://api.example.com/data');
-  res.json({ message: 'External API integration placeholder' });
-});
-
-// Periodically approve doctors every 10 minutes
-setInterval(async () => {
-  try {
-    await fetch('http://localhost:5000/api/doctors/approve-pending', { method: 'POST' });
-  } catch (err) {
-    // Ignore errors
-  }
-}, 10 * 60 * 1000);
-
-// Endpoint to add a resource file to MongoDB
-app.post('/api/resources/upload', async (req, res) => {
-  try {
-    const { type, title, artist, duration, host, typeDetail, author, speaker, fileName } = req.body;
-    // File should already be placed in /resources folder manually
-    const filePath = `/resources/${fileName}`;
-    const resourceData = { type, title, artist, duration, host, typeDetail, author, speaker, url: filePath };
-    const Resource = (await import('./models/Resource.js')).default;
-    const resource = new Resource(resourceData);
-    await resource.save();
-    res.status(201).json(resource);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-import schedulesRouter from './routes/schedules.js';
-app.use('/api/schedules', schedulesRouter);
-
-import checkinsRouter from './routes/checkins.js';
-app.use('/api/checkins', checkinsRouter);
-
-import goalsRouter from './routes/goals.js';
-app.use('/api/goals', goalsRouter);
-
-import currentFocusRouter from './routes/currentFocus.js';
-app.use('/api/current-focus', currentFocusRouter);
-
-import authRouter from './auth/index.js';
-app.use('/api/auth', authRouter);
