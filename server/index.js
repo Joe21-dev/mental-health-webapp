@@ -47,7 +47,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`❌ Blocked by CORS: ${origin}`);
+      console.warn(`Blocked by CORS: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -121,7 +121,7 @@ setInterval(async () => {
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
-  console.error('❌ MONGO_URI is not defined in .env');
+  console.error('MONGO_URI is not defined in .env');
   process.exit(1);
 }
 
@@ -130,7 +130,16 @@ mongoose.connect(MONGO_URI, {
   useUnifiedTopology: true,
 }).then(() => {
   console.log('✅ MongoDB connected successfully');
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}).catch((err) => {
+  console.error('MongoDB connection error:', err.message);
+});
+
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log('MongoDB connected successfully');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch(err => {
   console.error('MongoDB connection error:', err.message);
 });
@@ -158,7 +167,7 @@ mongoose.connection.on('connected', async () => {
         booked: false
       }
     ]);
-    console.log('✅ Seeded default therapists');
+    console.log('Seeded default therapists');
   }
 });
 
