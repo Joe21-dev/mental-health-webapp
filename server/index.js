@@ -19,7 +19,7 @@ app.use(express.json());
 
 app.use('/api/gemini-chat', geminiChatRouter);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 
@@ -28,11 +28,16 @@ const PORT = process.env.PORT || 5000;
 app.use('/resources', express.static(path.join(process.cwd(), 'resources')));
 
 // MongoDB Atlas connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://<username>:<password>@cluster0.mongodb.net/healthapp?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://joedsmith2550:root@cluster0.ruyqyts.mongodb.net/healthapp?retryWrites=true&w=majority&appName=Cluster0';
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).catch(err => {
+}).then(() => {
+  console.log('✅ MongoDB connected successfully');
+  app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+})
+
+.catch(err => {
   console.error('MongoDB connection error:', err.message);
 });
 
@@ -142,7 +147,3 @@ app.use('/api/current-focus', currentFocusRouter);
 
 import authRouter from './auth/index.js';
 app.use('/api/auth', authRouter);
-
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
