@@ -7,7 +7,7 @@ import {
 const navItems = [
   { name: 'Home', path: '/' },
   { name: 'About us', path: '/about' },
-  { name: 'Platform', path: '/signup' },
+  { name: 'Platform', path: '/platform' },
 
 ];
 const API_URL = import.meta.env.VITE_API_URL;
