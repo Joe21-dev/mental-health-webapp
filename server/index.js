@@ -35,7 +35,6 @@ const upload = multer({ storage });
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,        // Production (e.g., Vercel)
@@ -139,6 +138,7 @@ mongoose.connect(MONGO_URI, {
   useUnifiedTopology: true,
 }).then(() => {
   console.log('MongoDB connected successfully');
+  const PORT = process.env.PORT || 5001;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }).catch(err => {
   console.error('MongoDB connection error:', err.message);
@@ -175,3 +175,6 @@ mongoose.connection.on('connected', async () => {
 export const EXTERNAL_API_KEYS = {
   SONGS_API_KEY: process.env.SONGS_API_KEY || 'your-default-key',
 };
+app.get('/health', (req, res) => {
+  res.status(200).send('Backend is up and running!');
+});
