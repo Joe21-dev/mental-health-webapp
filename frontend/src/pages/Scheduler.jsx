@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain, Music, Moon, Phone, Menu, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+
 const Scheduler = () => {
   const [schedules, setSchedules] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -44,10 +46,10 @@ const Scheduler = () => {
   // Fetch schedules, goals, check-ins, and current focus from backend in real time
   useEffect(() => {
     const fetchData = () => {
-      fetch('/api/schedules').then(res => res.json()).then(setSchedules);
-      fetch('/api/goals').then(res => res.json()).then(setGoals);
-      fetch('/api/checkins').then(res => res.json()).then(setCheckins);
-      fetch('/api/current-focus').then(res => res.json()).then(setCurrentFocus);
+      fetch(`${BACKEND_URL}/api/schedules`).then(res => res.json()).then(setSchedules);
+      fetch(`${BACKEND_URL}/api/goals`).then(res => res.json()).then(setGoals);
+      fetch(`${BACKEND_URL}/api/checkins`).then(res => res.json()).then(setCheckins);
+      fetch(`${BACKEND_URL}/api/current-focus`).then(res => res.json()).then(setCurrentFocus);
     };
     fetchData();
     const interval = setInterval(fetchData, 5000); // Poll every 5s for real-time updates
@@ -58,7 +60,7 @@ const Scheduler = () => {
   useEffect(() => {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10);
-    fetch('/api/checkins', {
+    fetch(`${BACKEND_URL}/api/checkins`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: dateStr })
@@ -119,13 +121,13 @@ const Scheduler = () => {
     if (!form.title.trim()) return toast.error('Title is required');
     let endpoint = '', method = 'POST';
     if (formType === 'schedule') {
-      endpoint = '/api/schedules';
+      endpoint = `${BACKEND_URL}/api/schedules`;
       if (editingItem) {
         endpoint += `/${editingItem._id}`;
         method = 'PUT';
       }
     } else {
-      endpoint = '/api/goals';
+      endpoint = `${BACKEND_URL}/api/goals`;
       if (editingItem) {
         endpoint += `/${editingItem._id}`;
         method = 'PUT';
@@ -146,7 +148,7 @@ const Scheduler = () => {
         } else {
           setGoals(g => editingItem ? g.map(i => i._id === data._id ? data : i) : [...g, data]);
           // Also update current focus
-          await fetch('/api/current-focus', {
+          await fetch(`${BACKEND_URL}/api/current-focus`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30 })
@@ -249,7 +251,7 @@ const Scheduler = () => {
     setShowForm(true);
   }
   function handleDelete(item, type) {
-    const endpoint = type === 'schedule' ? '/api/schedules' : '/api/goals';
+    const endpoint = type === 'schedule' ? `${BACKEND_URL}/api/schedules` : `${BACKEND_URL}/api/goals`;
     fetch(`${endpoint}/${item._id}`, { method: 'DELETE' })
       .then(() => {
         if (type === 'schedule') setSchedules(s => s.filter(i => i._id !== item._id));

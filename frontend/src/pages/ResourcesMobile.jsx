@@ -9,6 +9,8 @@ const cardImages = {
   videos: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80'
 };
 
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+
 const ResourcesMobile = () => {
   const navigate = useNavigate();
   const [showList, setShowList] = useState(null);
@@ -53,7 +55,7 @@ const ResourcesMobile = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:5000/api/resources')
+    fetch(`${BACKEND_URL}/api/resources`)
       .then(res => res.json())
       .then(data => {
         const grouped = { songs: [], podcasts: [], ebooks: [], videos: [] };
@@ -292,7 +294,7 @@ const ResourcesMobile = () => {
       // Use XMLHttpRequest for progress
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
-        xhr.open('POST', 'http://localhost:5000/api/resources/upload');
+        xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -359,7 +361,7 @@ const ResourcesMobile = () => {
   const handleDeleteResource = async (resource) => {
     if (!window.confirm('Delete this resource?')) return;
     try {
-      await fetch(`http://localhost:5000/api/resources/${resource._id}`, { method: 'DELETE' });
+      await fetch(`${BACKEND_URL}/api/resources/${resource._id}`, { method: 'DELETE' });
       setResourceData(prev => {
         const grouped = { ...prev };
         Object.keys(grouped).forEach(type => {

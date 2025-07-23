@@ -10,6 +10,7 @@ const navItems = [
   { name: 'Platform', path: '/signup' },
 
 ];
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Animation keyframes 
 const Animations = () => (
@@ -37,7 +38,7 @@ const Landing = () => {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/health')
+    fetch(`${API_URL}/api/health`)
       .then(res => res.json())
       .then(data => setHealthData(data));
   }, []);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const API_URL = 'http://localhost:4001';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ const Signup = () => {
           {/* X Icon to close and go home */}
           <button
             className="absolute z-20 text-gray-400 cursor-pointer top-2 right-2 hover:text-gray-700"
-            onClick={() => window.location.href = 'http://localhost:5173/' }
+            onClick={() => window.location.href = '/' }
             aria-label="Close"
             type="button"
           >

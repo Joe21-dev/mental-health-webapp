@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Home, BarChart3, Calendar, Users, Music, Brain, Menu, X, MessageCircle, Shield, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+
 export default function TherapistsMobile() {
 	const [showForm, setShowForm] = useState(false);
 	const [showUserForm, setShowUserForm] = useState(false);
@@ -37,7 +39,7 @@ export default function TherapistsMobile() {
 	useEffect(() => {
 		setLoading(true);
 		setError(null);
-		fetch('http://localhost:5000/api/therapists')
+		fetch(`${BACKEND_URL}/api/therapists`)
 			.then(res => {
 				if (!res.ok) throw new Error('Failed to fetch doctors');
 				return res.json();
@@ -67,7 +69,7 @@ export default function TherapistsMobile() {
 	function handleSubmit(e) {
 		e.preventDefault();
 		if (!form.name.trim() || !form.specialty.trim()) return;
-		fetch('http://localhost:5000/api/therapists', {
+		fetch(`${BACKEND_URL}/api/therapists`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -76,7 +78,7 @@ export default function TherapistsMobile() {
 				avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
 			}),
 		})
-			.then(() => fetch('http://localhost:5000/api/therapists'))
+			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
 			.then(res => res.json())
 			.then(data => setDoctors(data));
 		setForm({ name: '', specialty: '' });
@@ -93,12 +95,12 @@ export default function TherapistsMobile() {
 			description: 'Booked via button',
 			bookedAt: new Date().toISOString()
 		} : null;
-		fetch(`http://localhost:5000/api/therapists/${d._id}/book`, {
+		fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ booked: newBooked, bookingInfo: bookingPayload })
 		})
-			.then(() => fetch('http://localhost:5000/api/therapists'))
+			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
 			.then(res => res.json())
 			.then(data => {
 				setDoctors(data);

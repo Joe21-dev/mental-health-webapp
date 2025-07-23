@@ -27,6 +27,8 @@ import TherapistsMobile from '../pages/TherapistsMobile';
 import { useResourcePlayer } from '../ResourcePlayerContext.jsx';
 import { toast } from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Dashboard = ({ showTherapistsProp = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -57,7 +59,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
   useEffect(() => {
     setLoadingTherapists(true);
     setTherapistsError(null);
-    fetch('http://localhost:5000/api/therapists')
+    fetch(`${API_URL}/api/therapists`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch therapists');
         return res.json();
@@ -80,7 +82,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
       if (!therapists || therapists.length === 0) {
         setLoadingTherapists(true);
         setTherapistsError(null);
-        fetch('http://localhost:5000/api/therapists')
+        fetch(`${API_URL}/api/therapists`)
           .then(res => {
             if (!res.ok) throw new Error('Failed to fetch therapists');
             return res.json();
@@ -109,7 +111,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/health')
+    fetch(`${API_URL}/api/health`)
       .then(res => res.json())
       .then(data => setHealthData(data));
   }, []);
@@ -248,7 +250,7 @@ const Dashboard = ({ showTherapistsProp = false }) => {
 
   // Handler to add a therapist and update both views/backend
   const handleAddTherapist = async (newTherapist) => {
-    const res = await fetch('http://localhost:5000/api/therapists', {
+    const res = await fetch(`${API_URL}/api/therapists`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTherapist)
@@ -259,13 +261,13 @@ const Dashboard = ({ showTherapistsProp = false }) => {
 
   // Handler to book/unbook a therapist and sync with backend
   const handleBookOrUnbook = async (therapist) => {
-    await fetch(`http://localhost:5000/api/therapists/${therapist._id}/book`, {
+    await fetch(`${API_URL}/api/therapists/${therapist._id}/book`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ booked: !therapist.booked })
     });
     // Refetch therapists to sync state
-    fetch('http://localhost:5000/api/therapists')
+    fetch(`${API_URL}/api/therapists`)
       .then(res => res.json())
       .then(data => setTherapists(data));
     setBookedTherapist(therapist.booked ? null : therapist);

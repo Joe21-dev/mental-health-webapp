@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+
 function stringToColor(str) {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -30,7 +32,7 @@ export default function Therapists() {
 	useEffect(() => {
 		setLoading(true);
 		setError(null);
-		fetch('http://localhost:5000/api/therapists')
+		fetch(`${BACKEND_URL}/api/therapists`)
 			.then(res => {
 				if (!res.ok) throw new Error('Failed to fetch therapists');
 				return res.json();
@@ -46,7 +48,7 @@ export default function Therapists() {
 	}, []);
 
 	useEffect(() => {
-		fetch('http://localhost:5000/api/therapy-tracker')
+		fetch(`${BACKEND_URL}/api/therapy-tracker`)
 			.then(res => res.json())
 			.then(data => setTherapyTracker(data));
 	}, []);
@@ -77,7 +79,7 @@ export default function Therapists() {
 	function handleSubmit(e) {
 		e.preventDefault();
 		if (!form.name.trim() || !form.specialty.trim()) return;
-		fetch('http://localhost:5000/api/therapists', {
+		fetch(`${BACKEND_URL}/api/therapists`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -88,7 +90,7 @@ export default function Therapists() {
 				therapy: recommendedTherapy
 			}),
 		})
-			.then(() => fetch('http://localhost:5000/api/therapists'))
+			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
 			.then(res => res.json())
 			.then(data => setDoctors(data));
 		setForm({ name: '', specialty: '' });
@@ -108,12 +110,12 @@ export default function Therapists() {
 			condition: d.condition || userCondition,
 			therapy: d.therapy || recommendedTherapy
 		} : null;
-		fetch(`http://localhost:5000/api/therapists/${d._id}/book`, {
+		fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ booked: newBooked, bookingInfo })
 		})
-			.then(() => fetch('http://localhost:5000/api/therapists'))
+			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
 			.then(res => res.json())
 			.then(data => {
 				setDoctors(data);
@@ -130,14 +132,14 @@ export default function Therapists() {
 						longestStreak: Math.max((therapyTracker?.longestStreak || 0), (therapyTracker?.streak || 0) + 1)
 					};
 					setTherapyTracker(trackerData);
-					fetch('http://localhost:5000/api/therapy-tracker', {
+					fetch(`${BACKEND_URL}/api/therapy-tracker`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(trackerData)
 					});
 				} else {
 					setTherapyTracker(null);
-					fetch('http://localhost:5000/api/therapy-tracker', {
+					fetch(`${BACKEND_URL}/api/therapy-tracker`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ user: 'User', doctor: null, therapy: '', condition: '', date: '', description: '', bookedAt: '', streak: 0, longestStreak: therapyTracker?.longestStreak || 0 })

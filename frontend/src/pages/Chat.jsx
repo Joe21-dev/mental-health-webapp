@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Paperclip, Send, Home, MessageCircle, Calendar, Users, Shield, Menu, Brain, Search, X, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Chat = () => {
   const [message, setMessage] = useState('');
@@ -241,7 +242,7 @@ const Chat = () => {
     setMessages(prev => [...prev, { role: 'user', text: message.trim() }]);
     setMessage('');
     try {
-      const res = await fetch('/api/gemini-chat/chat', {
+      const res = await fetch(`${API_URL}/api/gemini-chat/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...messages, { role: 'user', text: message.trim() }] })

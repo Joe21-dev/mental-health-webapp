@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const BACKEND_URL = 'http://192.168.88.235:5000'; // Use your backend IP
+const BACKEND_URL = import.meta.env.VITE_API_URL;
 
 const cardImages = {
   songs: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', // music poster
