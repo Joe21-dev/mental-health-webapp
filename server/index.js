@@ -156,7 +156,7 @@ mongoose.connection.on('error', err => console.error('MongoDB error:', err.messa
 mongoose.connection.on('disconnected', () => console.error('MongoDB disconnected'));
 
 mongoose.connection.on('connected', async () => {
-  console.log('MongoDB connected (seed check)');
+  console.log('MongoDB connected to DB:', mongoose.connection.name);
   const count = await Therapist.countDocuments();
   if (count === 0) {
     await Therapist.create([
