@@ -50,42 +50,36 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Detect type
     const type = detectTypeFromExt(file.originalname);
     let duration = '', pageCount = 0;
-    // Upload to Cloudinary
-    const uploadResult = await cloudinaryV2.uploader.upload_stream({
-      resource_type: type === 'video' ? 'video' : (type === 'ebook' ? 'raw' : 'auto'),
-      folder: 'healthapp_resources',
-      public_id: title.replace(/\s+/g, '_'),
-    }, async (error, result) => {
-      if (error || !result) {
-        return res.status(500).json({ error: 'Cloudinary upload failed', details: error });
-      }
-      // Save resource with Cloudinary URL
-      const resource = new Resource({
-        type,
-        title,
-        duration,
-        url: result.secure_url,
-        ...(type === 'ebook' ? { pageCount } : {})
+    // Upload to Cloudinary (Promise wrapper)
+    const streamUpload = (fileBuffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinaryV2.uploader.upload_stream({
+          resource_type: type === 'video' ? 'video' : (type === 'ebook' ? 'raw' : 'auto'),
+          folder: 'healthapp_resources',
+          public_id: title.replace(/\s+/g, '_'),
+        }, (error, result) => {
+          if (error || !result) return reject(error || new Error('No result from Cloudinary'));
+          resolve(result);
+        });
+        const bufferStream = require('stream').PassThrough();
+        bufferStream.end(fileBuffer);
+        bufferStream.pipe(stream);
       });
-      try {
-        await resource.save();
-        res.status(201).json({
-          message: 'File uploaded and resource saved successfully.',
-          resource
-        });
-      } catch (err) {
-        res.status(400).json({
-          error: 'Resource validation failed.',
-          details: err.errors || err.message,
-          resourceAttempted: resource
-        });
-      }
+    };
+    const result = await streamUpload(file.buffer);
+    // Save resource with Cloudinary URL
+    const resource = new Resource({
+      type,
+      title,
+      duration,
+      url: result.secure_url,
+      ...(type === 'ebook' ? { pageCount } : {})
     });
-    // Pipe file buffer to Cloudinary
-    const stream = require('stream');
-    const bufferStream = new stream.PassThrough();
-    bufferStream.end(file.buffer);
-    bufferStream.pipe(uploadResult);
+    await resource.save();
+    res.status(201).json({
+      message: 'File uploaded and resource saved successfully.',
+      resource
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

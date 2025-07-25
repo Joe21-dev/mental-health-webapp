@@ -46,7 +46,13 @@ const Signup = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        const text = await res.text();
+        throw new Error(text.startsWith('<!DOCTYPE') ? 'API endpoint not found or backend error.' : text);
+      }
       if (!res.ok) throw new Error(data.error || 'Signup failed');
       setSuccess(data.message || 'Signup successful! You can now log in.');
       setFormData({ name: '', email: '', password: '' });
@@ -68,7 +74,13 @@ const Signup = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginData.email, password: loginData.password })
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        const text = await res.text();
+        throw new Error(text.startsWith('<!DOCTYPE') ? 'API endpoint not found or backend error.' : text);
+      }
       if (!res.ok) throw new Error(data.error || 'Login failed');
       setSuccess(data.message || 'Login successful!');
       localStorage.setItem('token', data.token);
