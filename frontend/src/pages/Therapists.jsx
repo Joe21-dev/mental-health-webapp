@@ -255,19 +255,28 @@ export default function Therapists() {
 							{doctors.map(d => (
 								<li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
 									<div className="flex items-center space-x-3">
-										{/* Doctor avatar as first letter with unique bg color */}
-										<div
-											className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
-											style={{ background: stringToColor(d.name) }}
-										>
-											{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
-										</div>
+										{/* Doctor avatar as image if available, else first letter with unique bg color */}
+										{d.avatar ? (
+											<img src={d.avatar} alt={d.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+										) : (
+											<div
+												className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
+												style={{ background: stringToColor(d.name) }}
+											>
+												{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
+											</div>
+										)}
 										<div>
 											<div className="font-semibold">{d.name}</div>
 											<div className="text-sm text-gray-600">{d.specialty || ''}</div>
 											<div className="text-xs text-gray-400">{d.status || ''}</div>
 											{d.booked && d.bookingInfo && (
 												<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
+											)}
+											{/* Show createdAt and approvedAt if present */}
+											<div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
+											{d.approvedAt && (
+												<div className="text-xs text-blue-500">Approved: {new Date(d.approvedAt).toLocaleString()}</div>
 											)}
 										</div>
 									</div>
