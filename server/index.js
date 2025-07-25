@@ -69,6 +69,7 @@ app.use('/resources', express.static(path.join(process.cwd(), 'resources')));
 app.use('/api/gemini-chat', geminiChatRouter);
 app.use('/api/health', healthRoutes);
 app.use('/api/doctors', doctorsRouter);
+app.use('/api/therapists', doctorsRouter); // Alias for therapists
 app.use('/api/resources', resourcesRouterModule.default || resourcesRouterModule);
 app.use('/api/therapy-tracker', therapyTrackerRouter);
 app.use('/api/external-resources', externalResourcesRouter);
