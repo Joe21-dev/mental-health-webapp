@@ -47,6 +47,7 @@ const allowedOrigins = [
   ...prodOrigins,
   'http://localhost:5173'
 ];
+console.log('Allowed origins for CORS:', allowedOrigins);
 
 // CORS and express.json FIRST
 app.use(cors({
