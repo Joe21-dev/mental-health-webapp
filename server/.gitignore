@@ -1,26 +1,4 @@
-# Node modules
-node_modules/
 
 # Environment variables
 .env
 
-# Logs
-logs
-*.log
-npm-debug.log*
-
-# OS files
-.DS_Store
-
-# Runtime data
-pids
-*.pid
-*.seed
-
-# Editor folders
-.vscode/
-.idea/
-
-# Build folders (optional if compiling code)
-dist/
-build/
