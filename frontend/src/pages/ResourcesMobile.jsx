@@ -67,6 +67,7 @@ const ResourcesMobile = () => {
         });
         setResourceData(grouped);
         setLoading(false);
+        console.log('Resource data:', grouped); // Debug log
       })
       .catch(() => {
         setError('Failed to load resources');
@@ -234,7 +235,9 @@ const ResourcesMobile = () => {
             {icon}
           </div>
         </div>
-        
+        {items.length === 0 && (
+          <div className="p-4 text-center text-gray-300 text-sm">No resources</div>
+        )}
         {/* Modal for all resources of this type */}
         {showList === type && (
           <div className="fixed inset-0 z-50 flex px-6 items-center justify-center bg-black/70" onClick={() => setShowList(null)}>
@@ -395,8 +398,8 @@ const ResourcesMobile = () => {
         <ActiveCard />
         {/* Resource Cards */}
         <div className="grid grid-cols-2 gap-4">
-          {Object.entries(resourceData).map(([type, items]) => {
-            if (items.length === 0) return null;
+          {['songs', 'podcasts', 'ebooks', 'videos'].map(type => {
+            const items = resourceData[type] || [];
             const color = type === 'songs' ? 'blue' : type === 'podcasts' ? 'purple' : type === 'ebooks' ? 'green' : 'orange';
             return (
               <ResourceCard
