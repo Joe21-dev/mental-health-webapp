@@ -41,15 +41,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Serve frontend build from dist
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
-
-// Support React Router for all frontend routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
-});
-
-
 // Improved CORS config for multiple production URLs
 const prodOrigins = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = [
@@ -57,6 +48,7 @@ const allowedOrigins = [
   'http://localhost:5173'
 ];
 
+// CORS and express.json FIRST
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -68,7 +60,6 @@ app.use(cors({
   },
   credentials: true
 }));
-
 app.use(express.json());
 
 // Serve static files
@@ -91,11 +82,10 @@ app.get('/api/external', async (req, res) => {
   res.json({ message: 'External API integration placeholder' });
 });
 
-// Line: Replace your current /api/resources/upload block (~line 120–140)
+// Resource upload
 app.post('/api/resources/upload', upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
-
     const streamUpload = () =>
       new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -107,20 +97,23 @@ app.post('/api/resources/upload', upload.single('file'), async (req, res) => {
         );
         file.stream.pipe(stream);
       });
-
     const result = await streamUpload();
-
     const Resource = (await import('./models/Resource.js')).default;
     const resource = new Resource({
       ...req.body,
       url: result.secure_url
     });
-
     await resource.save();
     res.status(201).json(resource);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Serve frontend build from dist (after all API routes)
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
 });
 
 
