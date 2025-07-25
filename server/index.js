@@ -33,8 +33,6 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-require('dotenv').config();
-
 dotenv.config();
 
 // ES modules don't support __dirname directly, so use this workaround
