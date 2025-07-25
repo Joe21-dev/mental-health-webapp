@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import fetch from 'node-fetch'; // Needed if using older Node versions
 import geminiChatRouter from './routes/geminiChat.js';
@@ -35,9 +36,20 @@ const upload = multer({ storage });
  
 dotenv.config();
 
-
+// ES modules don't support __dirname directly, so use this workaround
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Serve frontend build from dist
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
+
+// Support React Router for all frontend routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
+});
+
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,        // Production (e.g., Vercel)
