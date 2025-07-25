@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: mental-health-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node index.js
+    envVars:
+      - key: MONGO_URL
+        value: mongodb+srv://gabrielodero21:root@cluster0.kmyysdx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - key: PORT
+        value: 5001
+    autoDeploy: true
+
+  - type: static
+    name: mental-health-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    autoDeploy: true
