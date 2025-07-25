@@ -8,6 +8,8 @@ import path from 'path';
 import { getAudioVideoDuration, getPdfPageCount } from './detectFileMeta.js';
 import cloudinary from './cloudinaryConfig.js';
 import { v2 as cloudinaryV2 } from 'cloudinary';
+import dotenv from 'dotenv';
+
 dotenv.config(); // Load .env variables
 
 const router = express.Router();
