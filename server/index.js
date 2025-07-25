@@ -20,6 +20,7 @@ import Therapist from './models/Therapist.js';
 // Line: After other imports like express, mongoose, cors, etc.
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
+const MONGO_URL = 'mongodb+srv://gabrielodero21:root@cluster0.kmyysdx.mongodb.net/?retryWrites=true&w=majority';
 
 // Cloudinary config
 cloudinary.config({
@@ -121,14 +122,14 @@ setInterval(async () => {
 }, 10 * 60 * 1000);
 
 // MongoDB connection
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.error('MONGO_URI is not defined in .env');
+const MONGO_URL = process.env.MONGO_URL;
+if (!MONGO_URL) {
+  console.error('MONGO_URL is not defined in .env');
   process.exit(1);
 }
-console.log('Connecting to MongoDB at:', MONGO_URI);
+console.log('Connecting to MongoDB at:', MONGO_URL);
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log('MongoDB connected successfully');
     const PORT = process.env.PORT || 5001;

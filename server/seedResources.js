@@ -1,7 +1,13 @@
 // Usage: node seedResources.js
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config(); // Load .env variables
 
-const MONGO_URL = 'mongodb://localhost:27017/healthapp';
+const MONGO_URL = process.env.MONGO_URL;
+if (!MONGO_URL) {
+  console.error('MONGO_URL not found in .env');
+  process.exit(1);
+}
 
 const resourceSchema = new mongoose.Schema({
   title: String,
