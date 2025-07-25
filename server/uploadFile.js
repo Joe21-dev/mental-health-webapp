@@ -8,10 +8,11 @@ import path from 'path';
 import { getAudioVideoDuration, getPdfPageCount } from './detectFileMeta.js';
 import cloudinary from './cloudinaryConfig.js';
 import { v2 as cloudinaryV2 } from 'cloudinary';
+dotenv.config(); // Load .env variables
 
 const router = express.Router();
-const mongoURI = 'mongodb://localhost:27017/healthapp';
-const conn = mongoose.createConnection(mongoURI, {
+const MONGO_URL = process.env.MONGO_URL;
+const conn = mongoose.createConnection(MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
