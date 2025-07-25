@@ -35,8 +35,13 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess(''); setLoading(true);
+    if (!isPasswordValid || !hasSpecialChar) {
+      setError('Password must be at least 8 characters and contain a special character.');
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await fetch(`${API_URL}/signup`, {
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -46,9 +51,9 @@ const Signup = () => {
       setSuccess(data.message || 'Signup successful! You can now log in.');
       setFormData({ name: '', email: '', password: '' });
       setShowLogin(true);
-      setLoading(false); // Move before navigation/UI update for instant feedback
+      setLoading(false);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Network error');
       setLoading(false);
     }
   };
@@ -58,7 +63,7 @@ const Signup = () => {
     e.preventDefault();
     setError(''); setSuccess(''); setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/login`, {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginData.email, password: loginData.password })
@@ -67,10 +72,11 @@ const Signup = () => {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       setSuccess(data.message || 'Login successful!');
       localStorage.setItem('token', data.token);
-      setLoading(false); // Move before navigation for instant feedback
+      setLoginData({ email: '', password: '' });
+      setLoading(false);
       navigate('/platform');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Network error');
       setLoading(false);
     }
   };
@@ -197,7 +203,7 @@ const Signup = () => {
                   type="submit"
                   className="w-full px-4 py-3 font-medium text-center text-white transition-colors bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
                   style={{ textAlign: 'center' }}
-                  disabled={loading}
+                  disabled={loading || !isPasswordValid || !hasSpecialChar}
                 >
                   {loading ? 'Signing up...' : 'Get started'}
                 </button>

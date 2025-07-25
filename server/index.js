@@ -21,6 +21,8 @@ import Therapist from './models/Therapist.js';
 // Line: After other imports like express, mongoose, cors, etc.
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
+import jwt from 'jsonwebtoken';
+import User from './auth/user.model.js';
 
 // Cloudinary config
 cloudinary.config({
@@ -109,6 +111,21 @@ app.post('/api/resources/upload', upload.single('file'), async (req, res) => {
     res.status(201).json(resource);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get current user info (requires JWT)
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 });
 

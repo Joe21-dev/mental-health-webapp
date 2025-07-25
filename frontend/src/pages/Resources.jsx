@@ -53,8 +53,8 @@ const Resources = () => {
     }
   }, [showInfo]);
 
-  // Fetch resources with filter or search
-  useEffect(() => {
+  // Fetch resources function
+  const fetchResources = () => {
     setLoading(true);
     let url = `${BACKEND_URL}/api/resources`;
     if (filterType !== 'all') {
@@ -67,10 +67,6 @@ const Resources = () => {
       .then(data => {
         const grouped = { songs: [], podcasts: [], ebooks: [], videos: [] };
         data.forEach(r => {
-          // Fix resource URL for playback
-          if (r.url && r.url.startsWith('/api/resources/file/')) {
-            r.url = `${BACKEND_URL}${r.url}`;
-          }
           if (r.type === 'song') grouped.songs.push(r);
           else if (r.type === 'podcast') grouped.podcasts.push(r);
           else if (r.type === 'ebook') grouped.ebooks.push(r);
@@ -79,10 +75,15 @@ const Resources = () => {
         setResourceData(grouped);
         setLoading(false);
       })
-      .catch(err => {
+      .catch(() => {
         setError('Failed to load resources');
         setLoading(false);
       });
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchResources();
   }, [filterType, searchTerm]);
 
   // Sync active resource across tabs/devices using localStorage
@@ -107,13 +108,7 @@ const Resources = () => {
     if (!window.confirm('Delete this resource?')) return;
     try {
       await fetch(`${BACKEND_URL}/api/resources/${resource._id}`, { method: 'DELETE' });
-      setResourceData(prev => {
-        const grouped = { ...prev };
-        Object.keys(grouped).forEach(type => {
-          grouped[type] = grouped[type].filter(r => r._id !== resource._id);
-        });
-        return grouped;
-      });
+      fetchResources(); // Refetch after delete
       if (activeResource && activeResource._id === resource._id) setActiveResource(null);
     } catch {
       alert('Failed to delete resource');
@@ -483,7 +478,6 @@ const Resources = () => {
       const formData = new FormData();
       formData.append('file', uploadForm.file);
       formData.append('title', uploadForm.title);
-      // Use XMLHttpRequest for progress
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
         xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
@@ -501,14 +495,7 @@ const Resources = () => {
               setUploading(false);
               return reject();
             }
-            setResourceData(prev => {
-              const grouped = { ...prev };
-              if (newResource.type === 'song') grouped.songs = [newResource, ...grouped.songs];
-              else if (newResource.type === 'podcast') grouped.podcasts = [newResource, ...grouped.podcasts];
-              else if (newResource.type === 'ebook') grouped.ebooks = [newResource, ...grouped.ebooks];
-              else if (newResource.type === 'video') grouped.videos = [newResource, ...grouped.videos];
-              return grouped;
-            });
+            fetchResources(); // Refetch after upload
             setShowUploadModal(false);
             setUploadForm({ file: null, title: '' });
             setUploadSuccess(true);
@@ -526,11 +513,9 @@ const Resources = () => {
         };
         xhr.send(formData);
       });
-    } catch (err) {
-      setUploadError(err.message);
-    } finally {
+    } catch (error) {
+      setUploadError('Upload failed');
       setUploading(false);
-      setTimeout(() => setUploadSuccess(false), 2000);
     }
   };
 
