@@ -21,7 +21,9 @@ export default function Therapists() {
 	const [showForm, setShowForm] = useState(false);
 	const [showUserForm, setShowUserForm] = useState(false);
 	const [form, setForm] = useState({ name: '', specialty: '' });
-	const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  // Track which doctor is currently booked by the user
+  const [bookedDoctorId, setBookedDoctorId] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [therapyTracker, setTherapyTracker] = useState(null);
@@ -29,23 +31,26 @@ export default function Therapists() {
 	const [recommendedTherapy, setRecommendedTherapy] = useState('');
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		setLoading(true);
-		setError(null);
-		fetch(`${BACKEND_URL}/api/therapists`)
-			.then(res => {
-				if (!res.ok) throw new Error('Failed to fetch therapists');
-				return res.json();
-			})
-			.then(data => {
-				setDoctors(data);
-				setLoading(false);
-			})
-			.catch(err => {
-				setError('Could not fetch therapists. Please check your connection or try again later.');
-				setLoading(false);
-			});
-	}, []);
+  useEffect(() => {
+	setLoading(true);
+	setError(null);
+	fetch(`${BACKEND_URL}/api/therapists`)
+	  .then(res => {
+		if (!res.ok) throw new Error('Failed to fetch therapists');
+		return res.json();
+	  })
+	  .then(data => {
+		setDoctors(data);
+		// Find if any doctor is booked by the user
+		const booked = data.find(d => d.booked);
+		setBookedDoctorId(booked ? booked._id : null);
+		setLoading(false);
+	  })
+	  .catch(err => {
+		setError('Could not fetch therapists. Please check your connection or try again later.');
+		setLoading(false);
+	  });
+  }, []);
 
 	useEffect(() => {
 		fetch(`${BACKEND_URL}/api/therapy-tracker`)
@@ -99,8 +104,8 @@ export default function Therapists() {
 		setShowForm(false);
 	}
 
-	function handleBook(d) {
-		const newBooked = !d.booked;
+  function handleBook(d) {
+	const newBooked = !d.booked;
 		const bookingInfo = newBooked ? {
 			name: 'User',
 			day: 'Monday',
@@ -110,16 +115,22 @@ export default function Therapists() {
 			condition: d.condition || userCondition,
 			therapy: d.therapy || recommendedTherapy
 		} : null;
-		fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
+	fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ booked: newBooked, bookingInfo })
 		})
-			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
-			.then(res => res.json())
-			.then(data => {
-				setDoctors(data);
-				if (newBooked) {
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(res => res.json())
+	  .then(data => {
+		setDoctors(data);
+		// Update bookedDoctorId state
+		if (newBooked) {
+		  setBookedDoctorId(d._id);
+		} else {
+		  setBookedDoctorId(null);
+		}
+		if (newBooked) {
 					const trackerData = {
 						user: 'User',
 						doctor: { name: d.name, specialty: d.specialty },
@@ -280,9 +291,13 @@ export default function Therapists() {
 											)}
 										</div>
 									</div>
-									<button className={`px-3 py-1 rounded ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`} onClick={() => handleBook(d)}>
-										{d.booked ? 'Unbook' : 'Book'}
-									</button>
+			  <button
+				className={`px-3 py-1 rounded ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+				onClick={() => handleBook(d)}
+				disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
+			  >
+				{d.booked ? 'Unbook' : 'Book'}
+			  </button>
 								</li>
 							))}
 						</ul>

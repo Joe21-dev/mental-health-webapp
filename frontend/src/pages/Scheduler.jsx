@@ -9,16 +9,24 @@ const BACKEND_URL = import.meta.env.VITE_API_URL;
 const Scheduler = () => {
   const [schedules, setSchedules] = useState([]);
   const [goals, setGoals] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState('schedule');
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [showGoalForm, setShowGoalForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [form, setForm] = useState({
+  const [scheduleForm, setScheduleForm] = useState({
     title: '',
     description: '',
     date: '',
     time: '',
     type: 'daily',
     color: 'blue',
+  });
+  const [goalForm, setGoalForm] = useState({
+    title: '',
+    description: '',
+    date: '',
+    duration: 30,
+    type: 'weekly',
+    color: 'green',
   });
   const [calendarDate, setCalendarDate] = useState(() => {
     const now = new Date();
@@ -115,50 +123,64 @@ const Scheduler = () => {
     }
   }, [goals]);
 
-  // Add schedule/goal logic
-  function handleFormSubmit(e) {
+  // Add schedule logic
+  function handleScheduleFormSubmit(e) {
     e.preventDefault();
-    if (!form.title.trim()) return toast.error('Title is required');
-    let endpoint = '', method = 'POST';
-    if (formType === 'schedule') {
-      endpoint = `${BACKEND_URL}/api/schedules`;
-      if (editingItem) {
-        endpoint += `/${editingItem._id}`;
-        method = 'PUT';
-      }
-    } else {
-      endpoint = `${BACKEND_URL}/api/goals`;
-      if (editingItem) {
-        endpoint += `/${editingItem._id}`;
-        method = 'PUT';
-      }
+    if (!scheduleForm.title.trim()) return toast.error('Title is required');
+    let endpoint = `${BACKEND_URL}/api/schedules`;
+    let method = 'POST';
+    if (editingItem) {
+      endpoint += `/${editingItem._id}`;
+      method = 'PUT';
     }
     fetch(endpoint, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+      body: JSON.stringify(scheduleForm)
     })
       .then(async res => {
         if (!res.ok) throw new Error('Failed to save');
         const data = await res.json();
-        if (formType === 'schedule') {
-          setSchedules(s => editingItem ? s.map(i => i._id === data._id ? data : i) : [...s, data]);
-          setCurrentDay(prev => prev + 1); // Increase progress tracker on schedule add
-          toast.success(editingItem ? 'Schedule updated!' : 'Schedule added!');
-        } else {
-          setGoals(g => editingItem ? g.map(i => i._id === data._id ? data : i) : [...g, data]);
-          // Also update current focus
-          await fetch(`${BACKEND_URL}/api/current-focus`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30 })
-          });
-          setCurrentFocus({ title: data.title, startDate: data.date, duration: data.duration || 30 });
-          toast.success(editingItem ? 'Goal updated!' : 'Goal added!');
-        }
-        setShowForm(false);
+        setSchedules(s => editingItem ? s.map(i => i._id === data._id ? data : i) : [...s, data]);
+        setCurrentDay(prev => prev + 1);
+        toast.success(editingItem ? 'Schedule updated!' : 'Schedule added!');
+        setShowScheduleForm(false);
         setEditingItem(null);
-        setForm({ title: '', description: '', date: '', time: '', type: 'daily', color: 'blue' });
+        setScheduleForm({ title: '', description: '', date: '', time: '', type: 'daily', color: 'blue' });
+      })
+      .catch(() => toast.error('Failed to save. Please try again.'));
+  }
+
+  // Add goal logic
+  function handleGoalFormSubmit(e) {
+    e.preventDefault();
+    if (!goalForm.title.trim()) return toast.error('Title is required');
+    let endpoint = `${BACKEND_URL}/api/goals`;
+    let method = 'POST';
+    if (editingItem) {
+      endpoint += `/${editingItem._id}`;
+      method = 'PUT';
+    }
+    fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(goalForm)
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('Failed to save');
+        const data = await res.json();
+        setGoals(g => editingItem ? g.map(i => i._id === data._id ? data : i) : [...g, data]);
+        // Also update current focus
+        await fetch(`${BACKEND_URL}/api/current-focus`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30 })
+        });
+        setCurrentFocus({ title: data.title, startDate: data.date, duration: data.duration || 30 });
+        toast.success(editingItem ? 'Goal updated!' : 'Goal added!');
+        setShowGoalForm(false);
+        setEditingItem(null);
+        setGoalForm({ title: '', description: '', date: '', duration: 30, type: 'weekly', color: 'green' });
       })
       .catch(() => toast.error('Failed to save. Please try again.'));
   }
@@ -233,22 +255,37 @@ const Scheduler = () => {
   }
 
   // Form handlers
-  function handleFormChange(e) {
+  function handleScheduleFormChange(e) {
     const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
+    setScheduleForm(f => ({ ...f, [name]: value }));
+  }
+  function handleGoalFormChange(e) {
+    const { name, value } = e.target;
+    setGoalForm(f => ({ ...f, [name]: value }));
   }
   function handleEdit(item, type) {
-    setFormType(type);
     setEditingItem(item);
-    setForm({
-      title: item.title,
-      description: item.description || '',
-      date: item.date || '',
-      time: item.time || '',
-      type: item.type || (type === 'goal' ? 'weekly' : 'daily'),
-      color: item.color || 'blue',
-    });
-    setShowForm(true);
+    if (type === 'goal') {
+      setGoalForm({
+        title: item.title,
+        description: item.description || '',
+        date: item.date || '',
+        duration: item.duration || 30,
+        type: item.type || 'weekly',
+        color: item.color || 'green',
+      });
+      setShowGoalForm(true);
+    } else {
+      setScheduleForm({
+        title: item.title,
+        description: item.description || '',
+        date: item.date || '',
+        time: item.time || '',
+        type: item.type || 'daily',
+        color: item.color || 'blue',
+      });
+      setShowScheduleForm(true);
+    }
   }
   function handleDelete(item, type) {
     const endpoint = type === 'schedule' ? `${BACKEND_URL}/api/schedules` : `${BACKEND_URL}/api/goals`;
@@ -359,8 +396,8 @@ const Scheduler = () => {
         <span className="font-semibold">Scheduler</span>
       </div>
        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-				<span className="text-white font-medium">U</span>
-			  </div>
+        <span className="text-white font-medium">U</span>
+        </div>
     </header>
   );
   const MobileNavDrawer = () => (
@@ -443,7 +480,7 @@ const Scheduler = () => {
         <div className="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-2  mb-4">
           <button
             className="flex items-center px-5 py-2 font-semibold text-white bg-blue-600 rounded-xl shadow hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={() => { setFormType('schedule'); setShowForm(true); }}
+            onClick={() => { setShowScheduleForm(true); setEditingItem(null); }}
           >
             <Plus className="w-5 h-5 mr-2" /> Add Schedule
           </button>
@@ -543,7 +580,7 @@ const Scheduler = () => {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="flex items-center text-lg font-semibold"><Target className="w-5 h-5 mr-2 text-green-500" /> Goals</h3>
-                  <button className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg" onClick={() => { setFormType('goal'); setShowForm(true); }}><Plus className="w-4 h-4" /></button>
+                  <button className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg" onClick={() => { setShowGoalForm(true); setEditingItem(null); }}><Plus className="w-4 h-4" /></button>
                 </div>
                 <ul className="space-y-2">
                   {goals && goals.filter(g => g && g.type && g.title && typeof g === 'object').map(g => (
@@ -576,29 +613,55 @@ const Scheduler = () => {
             </div>
           </div>
         </div>
-        {/* Add/Edit Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 px-4 pb-10 z-50 flex items-center justify-center bg-black/30" onClick={() => { setShowForm(false); setEditingItem(null); }}>
+        {/* Add/Edit Schedule Modal */}
+        {showScheduleForm && (
+          <div className="fixed inset-0 px-4 pb-10 z-50 flex items-center justify-center bg-black/30" onClick={() => { setShowScheduleForm(false); setEditingItem(null); }}>
             <form
               className="relative w-full max-w-md p-8 space-y-5 bg-white border border-gray-100 shadow-xl rounded-2xl animate-fadeIn"
               onClick={e => e.stopPropagation()}
-              onSubmit={handleFormSubmit}
+              onSubmit={handleScheduleFormSubmit}
             >
-              <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => { setShowForm(false); setEditingItem(null); }} aria-label="Close">&times;</button>
-              <h3 className="mb-2 text-lg font-semibold">{editingItem ? `Edit ${formType === 'goal' ? 'Goal' : 'Schedule'}` : `Add ${formType === 'goal' ? 'Goal' : 'Schedule'}`}</h3>
-              <input name="title" value={form.title} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Title" : "Schedule Title"} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
-              <textarea name="description" value={form.description} onChange={handleFormChange} placeholder={formType === 'goal' ? "Goal Description" : "Schedule Description"} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" />
-              <input name="date" type="date" value={form.date} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required={formType === 'schedule'} />
-              {formType === 'schedule' && (
-                <input name="time" type="time" value={form.time || ''} onChange={handleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
-              )}
-             
-              
+              <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => { setShowScheduleForm(false); setEditingItem(null); }} aria-label="Close">&times;</button>
+              <h3 className="mb-2 text-lg font-semibold">{editingItem ? `Edit Schedule` : `Add Schedule`}</h3>
+              <input name="title" value={scheduleForm.title} onChange={handleScheduleFormChange} placeholder="Schedule Title" className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
+              <textarea name="description" value={scheduleForm.description} onChange={handleScheduleFormChange} placeholder="Schedule Description" className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" />
+              <input name="date" type="date" value={scheduleForm.date} onChange={handleScheduleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
+              <input name="time" type="time" value={scheduleForm.time || ''} onChange={handleScheduleFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
               <div className="flex justify-end mt-2 space-x-2">
-                <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={() => { setShowForm(false); setEditingItem(null); }}>
+                <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={() => { setShowScheduleForm(false); setEditingItem(null); }}>
                   Cancel
                 </button>
                 <button type="submit" className="px-4 py-2 text-white bg-blue-500 rounded">
+                  {editingItem ? 'Save' : 'Add'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+        {/* Add/Edit Goal Modal */}
+        {showGoalForm && (
+          <div className="fixed inset-0 px-4 pb-10 z-50 flex items-center justify-center bg-black/30" onClick={() => { setShowGoalForm(false); setEditingItem(null); }}>
+            <form
+              className="relative w-full max-w-md p-8 space-y-5 bg-white border border-gray-100 shadow-xl rounded-2xl animate-fadeIn"
+              onClick={e => e.stopPropagation()}
+              onSubmit={handleGoalFormSubmit}
+            >
+              <button type="button" className="absolute text-2xl text-gray-400 top-3 right-3 hover:text-black" onClick={() => { setShowGoalForm(false); setEditingItem(null); }} aria-label="Close">&times;</button>
+              <h3 className="mb-2 text-lg font-semibold">{editingItem ? `Edit Goal` : `Add Goal`}</h3>
+              <input name="title" value={goalForm.title} onChange={handleGoalFormChange} placeholder="Goal Title" className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
+              <textarea name="description" value={goalForm.description} onChange={handleGoalFormChange} placeholder="Goal Description" className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" />
+              <input name="date" type="date" value={goalForm.date} onChange={handleGoalFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" required />
+              <input name="duration" type="number" min="1" value={goalForm.duration} onChange={handleGoalFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded" placeholder="Duration (days)" required />
+              <select name="type" value={goalForm.type} onChange={handleGoalFormChange} className="w-full px-3 py-2 mb-2 border-none bg-gray-50 rounded">
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+              <div className="flex justify-end mt-2 space-x-2">
+                <button type="button" className="px-4 py-2 bg-gray-200 rounded" onClick={() => { setShowGoalForm(false); setEditingItem(null); }}>
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 text-white bg-green-500 rounded">
                   {editingItem ? 'Save' : 'Add'}
                 </button>
               </div>

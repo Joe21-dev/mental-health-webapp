@@ -1,12 +1,15 @@
+// All imports and dotenv.config at the top
 import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import fetch from 'node-fetch'; // Needed if using older Node versions
+import fetch from 'node-fetch';
 import geminiChatRouter from './routes/geminiChat.js';
 import healthRoutes from './routes/health.js';
 import doctorsRouter from './routes/therapists.js';
@@ -17,12 +20,18 @@ import schedulesRouter from './routes/schedules.js';
 import checkinsRouter from './routes/checkins.js';
 import goalsRouter from './routes/goals.js';
 import currentFocusRouter from './routes/currentFocus.js';
-import authRouter from './auth/index.js';
 import Therapist from './models/Therapist.js';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
-import jwt from 'jsonwebtoken';
-import User from './auth/user.model.js';
+
+// User model (inline, since auth folder is being deleted)
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  isAdmin: { type: Boolean, default: false }
+}, { timestamps: true });
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Cloudinary config
 cloudinary.config({
@@ -41,18 +50,23 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Improved CORS config for multiple production URLs
+// Improved CORS config for local and hosted access
 const prodOrigins = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = [
   ...prodOrigins,
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost',
+  'http://127.0.0.1'
 ];
 console.log('Allowed origins for CORS:', allowedOrigins);
 
-// CORS and express.json FIRST
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps, curl, or direct server-to-server)
+    if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost(:\d+)?$/.test(origin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
       callback(null, true);
     } else {
       console.warn(`Blocked by CORS: ${origin}`);
@@ -78,7 +92,7 @@ app.use('/api/schedules', schedulesRouter);
 app.use('/api/checkins', checkinsRouter);
 app.use('/api/goals', goalsRouter);
 app.use('/api/current-focus', currentFocusRouter);
-app.use('/api/auth', authRouter);
+// app.use('/api/auth', authRouter); // Removed: authRouter is not defined, auth logic is inline
 
 app.get('/api/external', async (req, res) => {
   res.json({ message: 'External API integration placeholder' });
@@ -129,6 +143,38 @@ app.post('/api/resources/upload', requireAdmin, upload.single('file'), async (re
   }
 });
 
+// Signup
+app.post('/api/auth/signup', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: 'All fields required.' });
+  try {
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(409).json({ error: 'Email already registered.' });
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, email, password: hashed });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email }, message: 'Signup successful! You can now log in.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'All fields required.' });
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 // Get current user info (requires JWT)
 app.get('/api/auth/me', async (req, res) => {
   try {
@@ -144,11 +190,14 @@ app.get('/api/auth/me', async (req, res) => {
   }
 });
 
-// Serve frontend build from dist (after all API routes)
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
-});
+// Serve frontend build from dist (after all API routes), only if it exists
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 
 // Keep Render.com or other services awake

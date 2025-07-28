@@ -3,7 +3,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
-import connectDB from './mongo.js';
+// import connectDB from './mongo.js';
 import User from './user.model.js';
 
 const authRouter = express.Router();

@@ -9,7 +9,8 @@ export default function TherapistsMobile() {
 	const [showUserForm, setShowUserForm] = useState(false);
 	const [form, setForm] = useState({ name: '', specialty: '' });
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [doctors, setDoctors] = useState([]);
+const [doctors, setDoctors] = useState([]);
+const [bookedDoctorId, setBookedDoctorId] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [therapyTracker, setTherapyTracker] = useState(null);
@@ -36,23 +37,26 @@ export default function TherapistsMobile() {
 		  }
 		}, [showInfo]);
 
-	useEffect(() => {
-		setLoading(true);
-		setError(null);
-		fetch(`${BACKEND_URL}/api/therapists`)
-			.then(res => {
-				if (!res.ok) throw new Error('Failed to fetch doctors');
-				return res.json();
-			})
-			.then(data => {
-				setDoctors(data);
-				setLoading(false);
-			})
-			.catch(err => {
-				setError('Could not fetch doctors. Please check your connection or try again later.');
-				setLoading(false);
-			});
-	}, []);
+  useEffect(() => {
+	setLoading(true);
+	setError(null);
+	fetch(`${BACKEND_URL}/api/therapists`)
+	  .then(res => {
+		if (!res.ok) throw new Error('Failed to fetch doctors');
+		return res.json();
+	  })
+	  .then(data => {
+		setDoctors(data);
+		// Find if any doctor is booked by the user
+		const booked = data.find(d => d.booked);
+		setBookedDoctorId(booked ? booked._id : null);
+		setLoading(false);
+	  })
+	  .catch(err => {
+		setError('Could not fetch doctors. Please check your connection or try again later.');
+		setLoading(false);
+	  });
+  }, []);
 
 	function handleChange(e) {
 		const { name, value } = e.target;
@@ -85,41 +89,47 @@ export default function TherapistsMobile() {
 		setShowForm(false);
 	}
 
-	function handleBook(d) {
-		// Toggle booking status immediately, no modal
-		const newBooked = !d.booked;
-		const bookingPayload = newBooked ? {
-			name: 'User',
-			day: 'Monday',
-			date: new Date().toISOString().slice(0,10),
-			description: 'Booked via button',
-			bookedAt: new Date().toISOString()
-		} : null;
-		fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ booked: newBooked, bookingInfo: bookingPayload })
-		})
-			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
-			.then(res => res.json())
-			.then(data => {
-				setDoctors(data);
-				if (newBooked) {
-					const bookedDoctor = data.find(doc => doc._id === d._id);
-					setTherapyTracker({
-						doctor: bookedDoctor,
-						day: bookingPayload.day,
-						date: bookingPayload.date,
-						description: bookingPayload.description,
-						streak: 1,
-						longestStreak: 1,
-						bookedAt: bookingPayload.bookedAt
-					});
-				} else {
-					setTherapyTracker(null);
-				}
-			});
-	}
+  function handleBook(d) {
+	// Toggle booking status immediately, no modal
+	const newBooked = !d.booked;
+	const bookingPayload = newBooked ? {
+	  name: 'User',
+	  day: 'Monday',
+	  date: new Date().toISOString().slice(0,10),
+	  description: 'Booked via button',
+	  bookedAt: new Date().toISOString()
+	} : null;
+	fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
+	  method: 'PUT',
+	  headers: { 'Content-Type': 'application/json' },
+	  body: JSON.stringify({ booked: newBooked, bookingInfo: bookingPayload })
+	})
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(res => res.json())
+	  .then(data => {
+		setDoctors(data);
+		// Update bookedDoctorId state
+		if (newBooked) {
+		  setBookedDoctorId(d._id);
+		} else {
+		  setBookedDoctorId(null);
+		}
+		if (newBooked) {
+		  const bookedDoctor = data.find(doc => doc._id === d._id);
+		  setTherapyTracker({
+			doctor: bookedDoctor,
+			day: bookingPayload.day,
+			date: bookingPayload.date,
+			description: bookingPayload.description,
+			streak: 1,
+			longestStreak: 1,
+			bookedAt: bookingPayload.bookedAt
+		  });
+		} else {
+		  setTherapyTracker(null);
+		}
+	  });
+  }
 
 	function stringToColor(str) {
 		let hash = 0;
@@ -260,9 +270,13 @@ export default function TherapistsMobile() {
 									)}
 								</div>
 							</div>
-							<button className={`px-2 py-1 rounded text-xs ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`} onClick={() => handleBook(d)}>
-								{d.booked ? 'Unbook' : 'Book'}
-							</button>
+			  <button
+				className={`px-2 py-1 rounded text-xs ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+				onClick={() => handleBook(d)}
+				disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
+			  >
+				{d.booked ? 'Unbook' : 'Book'}
+			  </button>
 						</li>
 					))}
 				</ul>

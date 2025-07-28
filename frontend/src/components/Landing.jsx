@@ -89,7 +89,7 @@ const Landing = () => {
               <button className="px-5 py-2 bg-gradient-to-r from-black to-gray-500 hover:from-gray-500 hover:to-black
                text-white rounded-full font-semibold shadow-md 
                 transition-colors cursor-pointer"
-              onClick={() => navigate('/signup')}>
+               onClick={() => window.location.pathname = '/signup'}>
                 Sign Up
               </button>
             </div>
@@ -132,7 +132,7 @@ const Landing = () => {
               <button className="w-full px-3 py-2 bg-gradient-to-r from-black to-gray-500 text-white rounded-full 
               font-semibold shadow-md hover:from-gray-500 hover:to-black transition-colors mt-2 animate-scaleIn cursor-pointer
               "
-              onClick={() => navigate('/signup')}>
+              onClick={() => window.location.pathname = '/signup'}>
                 Sign Up
               </button>
             </div>
