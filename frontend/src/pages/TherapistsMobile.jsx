@@ -28,6 +28,10 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 		return () => window.removeEventListener('scroll', handleScroll);
 	  }, []);
 
+	    // Get userName and userEmail from localStorage or default
+		const userName = localStorage.getItem('userName') || '';
+		const userEmail = localStorage.getItem('userEmail') || '';
+
 	  // Info alert for user guidance
 		const [showInfo, setShowInfo] = useState(true);
 		useEffect(() => {
@@ -189,6 +193,7 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 			<span className="font-semibold">Therapists</span>
 		  </div>
 		   {/* Avatar dropdown */}
+
         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
           <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
           {showAvatarDropdown && (

@@ -82,6 +82,9 @@ export default function Therapists() {
 		}
 	  }, [showInfo]);
 	
+	    // Get userName and userEmail from localStorage or default
+		const userName = localStorage.getItem('userName') || '';
+		const userEmail = localStorage.getItem('userEmail') || '';
 
 	function handleChange(e) {
 		const { name, value } = e.target;

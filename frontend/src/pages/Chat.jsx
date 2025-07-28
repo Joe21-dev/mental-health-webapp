@@ -29,6 +29,10 @@ const Chat = () => {
   { icon: Shield, label: 'Resources', path: '/platform/resources' }
   ];
 
+  // Get userName and userEmail from localStorage or default
+  const userName = localStorage.getItem('userName') || '';
+  const userEmail = localStorage.getItem('userEmail') || '';
+
   // Desktop Header
   const DesktopHeader = () => (
   <div className='pt-6 px-6 hidden lg:block'>

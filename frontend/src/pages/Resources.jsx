@@ -56,6 +56,9 @@ const Resources = () => {
       return () => clearTimeout(timer);
     }
   }, [showInfo]);
+   // Get userName and userEmail from localStorage or default
+  const userName = localStorage.getItem('userName') || '';
+  const userEmail = localStorage.getItem('userEmail') || '';
 
   // Fetch resources function
   const fetchResources = () => {
