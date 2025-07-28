@@ -54,6 +54,9 @@ const Signup = () => {
         throw new Error(text.startsWith('<!DOCTYPE') ? 'API endpoint not found or backend error.' : text);
       }
       if (!res.ok) throw new Error(data.error || 'Signup failed');
+      // Store user info and token in localStorage for session persistence
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       setSuccess(data.message || 'Signup successful! You can now log in.');
       setFormData({ name: '', email: '', password: '' });
       setShowLogin(true);
@@ -82,8 +85,10 @@ const Signup = () => {
         throw new Error(text.startsWith('<!DOCTYPE') ? 'API endpoint not found or backend error.' : text);
       }
       if (!res.ok) throw new Error(data.error || 'Login failed');
-      setSuccess(data.message || 'Login successful!');
+      // Store user info and token in localStorage for session persistence
       localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setSuccess(data.message || 'Login successful!');
       setLoginData({ email: '', password: '' });
       setLoading(false);
       navigate('/platform');
