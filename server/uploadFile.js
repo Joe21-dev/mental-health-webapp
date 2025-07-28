@@ -50,6 +50,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Detect type
     const type = detectTypeFromExt(file.originalname);
     let duration = '', pageCount = 0;
+    // Check Cloudinary credentials
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('Cloudinary credentials missing');
+      return res.status(500).json({ error: 'Cloudinary credentials missing on server.' });
+    }
     // Upload to Cloudinary (Promise wrapper)
     const streamUpload = (fileBuffer) => {
       return new Promise((resolve, reject) => {
@@ -58,7 +63,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
           folder: 'healthapp_resources',
           public_id: title.replace(/\s+/g, '_'),
         }, (error, result) => {
-          if (error || !result) return reject(error || new Error('No result from Cloudinary'));
+          if (error || !result) {
+            console.error('Cloudinary upload error:', error);
+            return reject(error || new Error('No result from Cloudinary'));
+          }
           resolve(result);
         });
         const bufferStream = require('stream').PassThrough();
@@ -66,7 +74,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         bufferStream.pipe(stream);
       });
     };
-    const result = await streamUpload(file.buffer);
+    let result;
+    try {
+      result = await streamUpload(file.buffer);
+    } catch (cloudErr) {
+      console.error('Cloudinary upload failed:', cloudErr);
+      return res.status(500).json({ error: 'Cloudinary upload failed', details: cloudErr && cloudErr.message ? cloudErr.message : cloudErr });
+    }
     // Save resource with Cloudinary URL
     const resource = new Resource({
       type,
@@ -75,12 +89,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       url: result.secure_url,
       ...(type === 'ebook' ? { pageCount } : {})
     });
-    await resource.save();
+    try {
+      await resource.save();
+    } catch (err) {
+      console.error('MongoDB save failed:', err);
+      return res.status(400).json({ error: 'Resource validation failed.', details: err.errors || err.message, resourceAttempted: resource });
+    }
     res.status(201).json({
       message: 'File uploaded and resource saved successfully.',
       resource
     });
   } catch (err) {
+    console.error('Upload endpoint error:', err);
     res.status(500).json({ error: err.message });
   }
 });

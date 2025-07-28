@@ -92,8 +92,8 @@ const ResourcesMobile = () => {
         <span className="font-semibold">Resources</span>
         </div>
          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-				<span className="text-white font-medium">U</span>
-			  </div>
+        <span className="text-white font-medium">U</span>
+        </div>
       </header>
       );
       const MobileNavDrawer = () => (
@@ -295,6 +295,12 @@ const ResourcesMobile = () => {
       setUploading(false);
       return;
     }
+    // File size check (Cloudinary free tier max 100MB)
+    if (uploadForm.file.size > 100 * 1024 * 1024) {
+      setUploadError('File too large. Max 100MB allowed.');
+      setUploading(false);
+      return;
+    }
     try {
       const formData = new FormData();
       formData.append('file', uploadForm.file);
@@ -309,7 +315,14 @@ const ResourcesMobile = () => {
         };
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            const uploadResult = JSON.parse(xhr.responseText);
+            let uploadResult;
+            try {
+              uploadResult = JSON.parse(xhr.responseText);
+            } catch (err) {
+              setUploadError('Server returned invalid response.');
+              setUploading(false);
+              return reject();
+            }
             const newResource = uploadResult.resource;
             if (!newResource || !newResource.type) {
               setUploadError('Invalid resource returned from server');
@@ -322,13 +335,19 @@ const ResourcesMobile = () => {
             setUploadSuccess(true);
             resolve();
           } else {
-            setUploadError('Upload failed');
+            let errorMsg = 'Upload failed';
+            try {
+              const resp = JSON.parse(xhr.responseText);
+              if (resp && resp.error) errorMsg = resp.error;
+              if (resp && resp.details) errorMsg += ': ' + resp.details;
+            } catch {}
+            setUploadError(errorMsg);
             setUploading(false);
             reject();
           }
         };
         xhr.onerror = () => {
-          setUploadError('Upload failed');
+          setUploadError('Upload failed (network error)');
           setUploading(false);
           reject();
         };
