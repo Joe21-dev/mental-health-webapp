@@ -32,6 +32,8 @@ const ResourcesMobile = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const audioRef = useRef(null);
+  // For continuous playback
+  const PLAYBACK_KEY = 'resourcePlayback';
 
 
     // Scroll handler for header background
@@ -181,8 +183,27 @@ const ResourcesMobile = () => {
               autoPlay={isPlaying}
               src={activeResource.url}
               className="w-60 mb-2"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
+              onPlay={() => {
+                setIsPlaying(true);
+                // Save playback state
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: true
+                }));
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: false
+                }));
+              }}
+              onTimeUpdate={() => {
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: !audioRef.current?.paused
+                }));
+              }}
             >
               Your browser does not support the audio element.
             </audio>
@@ -197,7 +218,42 @@ const ResourcesMobile = () => {
           <div className="absolute inset-0 rounded-2xl bg-orange-900/60"></div>
           <div className="relative z-10 w-full flex flex-col items-center">
             <h3 className="mb-2 mt-6 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
-            <video controls autoPlay src={activeResource.url} className="w-75 mb-2 rounded-xl" style={{maxHeight: '180px'}}></video>
+            <video
+              controls
+              autoPlay={isPlaying}
+              src={activeResource.url}
+              className="w-75 mb-2 rounded-xl"
+              style={{maxHeight: '180px'}} 
+              ref={el => {
+                if (el && localStorage.getItem(PLAYBACK_KEY)) {
+                  try {
+                    const { time, playing } = JSON.parse(localStorage.getItem(PLAYBACK_KEY));
+                    el.currentTime = time || 0;
+                    if (playing) setTimeout(() => el.play(), 200);
+                  } catch {}
+                }
+              }}
+              onPlay={e => {
+                setIsPlaying(true);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: true
+                }));
+              }}
+              onPause={e => {
+                setIsPlaying(false);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: false
+                }));
+              }}
+              onTimeUpdate={e => {
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: !e.target.paused
+                }));
+              }}
+            ></video>
             <div className="text-center text-gray-200 mb-1">Speaker: {activeResource.speaker}</div>
             <button className="w-70 py-2 bg-orange-500 text-white rounded mt-2 mb-4" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
@@ -308,6 +364,8 @@ const ResourcesMobile = () => {
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
         xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
+        xhr.timeout = 45000; // 45 seconds max
+        xhr.withCredentials = false;
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -351,6 +409,11 @@ const ResourcesMobile = () => {
           setUploading(false);
           reject();
         };
+        xhr.ontimeout = () => {
+          setUploadError('Upload timed out (max 45 seconds). Try a smaller file or faster connection.');
+          setUploading(false);
+          reject();
+        };
         xhr.send(formData);
       });
     } catch (error) {
@@ -367,12 +430,25 @@ const ResourcesMobile = () => {
         setActiveResource(JSON.parse(storedActive));
       } catch {}
     }
+    // Restore playback state
+    const pb = localStorage.getItem(PLAYBACK_KEY);
+    if (pb && audioRef.current) {
+      try {
+        const { time, playing } = JSON.parse(pb);
+        audioRef.current.currentTime = time || 0;
+        if (playing) {
+          setTimeout(() => audioRef.current && audioRef.current.play(), 200);
+        }
+      } catch {}
+    }
   }, []);
+  // Save activeResource and playback state
   useEffect(() => {
     if (activeResource) {
       localStorage.setItem('activeResource', JSON.stringify(activeResource));
     } else {
       localStorage.removeItem('activeResource');
+      localStorage.removeItem(PLAYBACK_KEY);
     }
   }, [activeResource]);
 

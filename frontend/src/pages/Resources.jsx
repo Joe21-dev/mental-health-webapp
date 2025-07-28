@@ -43,6 +43,8 @@ const Resources = () => {
   const [activeResource, setActiveResource] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
+  // For continuous playback
+  const PLAYBACK_KEY = 'resourcePlayback';
 
   // Info alert for user guidance
   const [showInfo, setShowInfo] = useState(true);
@@ -94,12 +96,24 @@ const Resources = () => {
         setActiveResource(JSON.parse(storedActive));
       } catch {}
     }
+    // Restore playback state
+    const pb = localStorage.getItem(PLAYBACK_KEY);
+    if (pb && audioRef.current) {
+      try {
+        const { time, playing } = JSON.parse(pb);
+        audioRef.current.currentTime = time || 0;
+        if (playing) {
+          setTimeout(() => audioRef.current && audioRef.current.play(), 200);
+        }
+      } catch {}
+    }
   }, []);
   useEffect(() => {
     if (activeResource) {
       localStorage.setItem('activeResource', JSON.stringify(activeResource));
     } else {
       localStorage.removeItem('activeResource');
+      localStorage.removeItem(PLAYBACK_KEY);
     }
   }, [activeResource]);
 
@@ -122,8 +136,7 @@ const Resources = () => {
         <span className="text-lg font-semibold">Select a resource:</span>
       </div>
     );
-    // Song or Podcast: audio player
-    if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
+  };
       return (
         <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-3xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -142,8 +155,26 @@ const Resources = () => {
               autoPlay={isPlaying}
               src={activeResource.url}
               className="w-full max-w-lg mb-4 bg-gray-900 rounded-xl shadow-lg border border-blue-400"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
+              onPlay={() => {
+                setIsPlaying(true);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: true
+                }));
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: false
+                }));
+              }}
+              onTimeUpdate={() => {
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: !audioRef.current?.paused
+                }));
+              }}
             >
               Your browser does not support the audio element.
             </audio>
@@ -231,79 +262,9 @@ const Resources = () => {
         </div>
       );
     }
-    // Default fallback
-    return (
-      <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex items-center justify-center min-h-[200px]">
-        <span className="text-lg font-semibold">No resource selected</span>
-      </div>
-    );
+    // End of ActiveCard
   };
-
-  // Cards: visually appealing fixed width/height and scrollable modal for all resources
-  const CARD_STYLE = {
-    width: '340px',
-    height: '340px',
-    minWidth: '300px',
-    minHeight: '300px',
-    maxWidth: '100%',
-    maxHeight: '100%',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-    borderRadius: '1.5rem',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  };
-
-  const SongsCard = () => (
-    <div className="relative" style={CARD_STYLE}>
-      <div className="absolute inset-0 bg-blue-900/60 rounded-3xl"></div>
-      <div className="relative z-10 p-6 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold cursor-pointer text-blue-100" onClick={() => setShowList('songs')}>Songs</h3>
-        </div>
-        <ul className="space-y-3 flex-1 overflow-y-auto">
-          {resourceData.songs.slice(0, 4).map((song, idx) => (
-            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(song)}>
-              <div>
-                <div className="font-semibold text-blue-100">{song.title}</div>
-                <div className="text-xs text-blue-200">{song.artist} • {song.duration}</div>
-              </div>
-              {song.url ? (
-                <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(song); }}>
-                  <Play size={16} />
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        {/* Modal for all songs */}
-        {showList === 'songs' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
-              <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
-              <h3 className="font-semibold text-lg mb-4 text-blue-700">All Songs</h3>
-              <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-                {resourceData.songs.map((song, idx) => (
-                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { setActiveResource(song); setShowList(null); }}>
-                    <div>
-                      <div className="font-semibold text-blue-700">{song.title}</div>
-                      <div className="text-xs text-gray-500">{song.artist} • {song.duration}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`}><Play size={16} /></button>
-                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-    
-  );
+    }
 
   const PodcastsCard = () => (
     <div className="relative" style={CARD_STYLE}>
@@ -354,6 +315,7 @@ const Resources = () => {
     </div>
   );
 
+  // EbooksCard definition (single, valid, and closed)
   const EbooksCard = () => (
     <div className="relative" style={CARD_STYLE}>
       <div className="absolute inset-0 bg-green-900/60 rounded-3xl"></div>
@@ -445,6 +407,8 @@ const Resources = () => {
   );
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [uploadForm, setUploadForm] = useState({
@@ -460,6 +424,24 @@ const Resources = () => {
       setUploadForm(f => ({ ...f, file: files[0] }));
     } else {
       setUploadForm(f => ({ ...f, [name]: value }));
+    }
+  };
+
+  // Show password modal before upload modal
+  const handleShowUploadModal = () => {
+    setPasswordInput('');
+    setShowPasswordModal(true);
+  };
+
+  // Password check logic
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (passwordInput === 'root') {
+      setShowPasswordModal(false);
+      setShowUploadModal(true);
+    } else {
+      setShowPasswordModal(false);
+      setUploadError('You require admin priviledges to add a resource');
     }
   };
 
@@ -484,9 +466,14 @@ const Resources = () => {
       const formData = new FormData();
       formData.append('file', uploadForm.file);
       formData.append('title', uploadForm.title);
+      if (/podcast/i.test(uploadForm.title)) {
+        formData.append('type', 'podcast');
+      }
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
         xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
+        xhr.timeout = 45000; // 45 seconds max
+        xhr.withCredentials = false;
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
             setUploadProgress(Math.round((event.loaded / event.total) * 100));
@@ -530,6 +517,11 @@ const Resources = () => {
           setUploading(false);
           reject();
         };
+        xhr.ontimeout = () => {
+          setUploadError('Upload timed out (max 45 seconds). Try a smaller file or faster connection.');
+          setUploading(false);
+          reject();
+        };
         xhr.send(formData);
       });
     } catch (error) {
@@ -540,15 +532,26 @@ const Resources = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 px-6">
-      {/* Upload Floating Button */}
+      {/* Upload Floating Button (visible to all users) */}
       <button
         className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
         style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
-        onClick={() => setShowUploadModal(true)}
+        onClick={handleShowUploadModal}
         aria-label="Upload Resource"
       >
         <Plus size={28} />
       </button>
+      {/* Password Modal (z-60, above upload modal) */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60" onClick={() => setShowPasswordModal(false)}>
+          <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()} onSubmit={handlePasswordSubmit}>
+            <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowPasswordModal(false)} aria-label="Close"><X size={24} /></button>
+            <h2 className="text-xl font-bold mb-2 text-blue-700">Admin Password</h2>
+            <input type="password" name="password" placeholder="Enter password" required className="border rounded-lg px-3 py-2" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} autoFocus />
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold mt-2">Continue</button>
+          </form>
+        </div>
+      )}
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowUploadModal(false)}>
@@ -687,6 +690,5 @@ const Resources = () => {
       </div>
     </div>
   );
-};
 
 export default Resources;
