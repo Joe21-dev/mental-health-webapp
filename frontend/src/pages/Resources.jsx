@@ -106,11 +106,25 @@ const Resources = () => {
 
   // Defensive check for activeResource in ActiveCard
   const ActiveCard = () => {
-    if (!activeResource) return (
-      <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
-        <span className="text-lg font-semibold">Select a resource:</span>
-      </div>
-    );
+    if (!activeResource) {
+      return (
+        <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
+          <span className="text-lg font-semibold">Select a resource:</span>
+        </div>
+      );
+    }
+
+    // Defensive: if activeResource is null or type is missing, don't render further
+    if (!activeResource.type) {
+      return (
+        <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
+          <span className="text-lg font-semibold">Invalid resource selected.</span>
+        </div>
+      );
+    }
+
+    // Song or podcast
+    if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
       return (
         <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-3xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -170,6 +184,7 @@ const Resources = () => {
         </div>
       );
     }
+
     // Video: video player
     if (activeResource.type === 'video' && activeResource.url) {
       return (
@@ -193,6 +208,7 @@ const Resources = () => {
         </div>
       );
     }
+
     // E-book: PDF modal
     if (activeResource.type === 'ebook' && activeResource.url) {
       return (
@@ -224,7 +240,14 @@ const Resources = () => {
         </div>
       );
     }
-    // End of ActiveCard
+
+    // Fallback for unknown resource type
+    return (
+      <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
+        <span className="text-lg font-semibold">Unknown resource type.</span>
+      </div>
+    );
+  };
   
 
   const PodcastsCard = () => (
@@ -627,9 +650,27 @@ const Resources = () => {
               </div>
             </div>
           </div>
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-medium">U</span>
-          </div>
+          {/* Avatar dropdown */}
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
+          <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
+          {showAvatarDropdown && (
+            <div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+              <div className="p-4 border-b border-gray-200">
+                <div className="font-bold text-lg text-blue-700">{userName || 'User'}</div>
+                <div className="text-sm text-gray-600">{userEmail || ''}</div>
+              </div>
+              <button
+                className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('userName');
+                  localStorage.removeItem('userEmail');
+                  window.location.href = '/signup';
+                }}
+              >Logout</button>
+            </div>
+          )}
           
         </div>
       </nav>

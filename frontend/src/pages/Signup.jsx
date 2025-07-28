@@ -105,8 +105,9 @@ const Signup = () => {
     }
   };
 
-  const isPasswordValid = formData.password.length >= 8;
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+  // No password requirements: allow any password
+  const isPasswordValid = true;
+  const hasSpecialChar = true;
 
   return (
     <div className="flex min-h-screen overflow-hidden bg-gray-50">
@@ -210,24 +211,14 @@ const Signup = () => {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  {/* Password Requirements */}
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${isPasswordValid ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={`text-sm ${isPasswordValid ? 'text-green-600' : 'text-gray-500'}`}>Must be at least 8 characters</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${hasSpecialChar ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={`text-sm ${hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>Must contain one special character</span>
-                    </div>
-                  </div>
+                {/* Password Requirements removed: allow any password */}
                 </div>
                 {/* Submit Button */}
                 <button
                   type="submit"
                   className="w-full px-4 py-3 font-medium text-center text-white transition-colors bg-blue-600 rounded-lg cursor-pointer hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
                   style={{ textAlign: 'center' }}
-                  disabled={loading || !isPasswordValid || !hasSpecialChar}
+                  disabled={loading}
                 >
                   {loading ? 'Signing up...' : 'Get started'}
                 </button>

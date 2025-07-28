@@ -163,10 +163,17 @@ const ResourcesMobile = () => {
   // ActiveCard at the top
   // Defensive check for activeResource usage
   const ActiveCard = () => {
-    if (!activeResource || typeof activeResource !== 'object' || !activeResource.type) {
+    if (!activeResource || typeof activeResource !== 'object') {
       return (
         <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
           <span className="text-lg font-semibold text-white">Select a resource:</span>
+        </div>
+      );
+    }
+    if (!activeResource.type) {
+      return (
+        <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+          <span className="text-lg font-semibold text-white">Invalid resource selected.</span>
         </div>
       );
     }
@@ -280,7 +287,12 @@ const ResourcesMobile = () => {
         </div>
       );
     }
-    return null;
+    // Fallback for unknown resource type
+    return (
+      <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+        <span className="text-lg font-semibold text-white">Unknown resource type.</span>
+      </div>
+    );
   };
 
   // ResourceCard: show scrollable modal of all resources when title is clicked, add chevron icon to indicate clickable

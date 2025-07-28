@@ -177,19 +177,23 @@ export default function Therapists() {
   }
 
   // Delete doctor handler
-  function handleDeleteDoctor(id) {
+  async function handleDeleteDoctor(id) {
 	if (!window.confirm('Are you sure you want to delete this doctor?')) return;
-	fetch(`${BACKEND_URL}/api/therapists/${id}`, {
-	  method: 'DELETE',
-	})
-	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
-	  .then(res => res.json())
-	  .then(data => setDoctors(data));
-	// If deleted doctor was booked, clear booking and tracker
-	if (bookedDoctorId === id) {
-	  setBookedDoctorId(null);
-	  setTherapyTracker(null);
-	  sessionStorage.removeItem('therapyTracker');
+	try {
+	  const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
+		method: 'DELETE',
+	  });
+	  if (!res.ok) throw new Error('Failed to delete doctor');
+	  // Remove doctor from state immediately for instant UI feedback
+	  setDoctors(prev => prev.filter(d => d._id !== id));
+	  // If deleted doctor was booked, clear booking and tracker
+	  if (bookedDoctorId === id) {
+		setBookedDoctorId(null);
+		setTherapyTracker(null);
+		sessionStorage.removeItem('therapyTracker');
+	  }
+	} catch (err) {
+	  alert('Failed to delete doctor. Please try again.');
 	}
   }
 
@@ -254,9 +258,28 @@ export default function Therapists() {
 				  className="pl-10 pr-4 py-2 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
 				/>
 			  </div>
-			  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-				<span className="text-white font-medium">U</span>
-			  </div>
+			 {/* Avatar dropdown */}
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
+          <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
+          {showAvatarDropdown && (
+            <div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+              <div className="p-4 border-b border-gray-200">
+                <div className="font-bold text-lg text-blue-700">{userName || 'User'}</div>
+                <div className="text-sm text-gray-600">{userEmail || ''}</div>
+              </div>
+              <button
+                className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('userName');
+                  localStorage.removeItem('userEmail');
+                  window.location.href = '/signup';
+                }}
+              >Logout</button>
+            </div>
+          )}
+		  </div>
 			  
 			</div>
 		  </nav>
@@ -333,14 +356,17 @@ export default function Therapists() {
 				>
 				  {d.booked ? 'Unbook' : 'Book'}
 				</button>
-				<button
-				  className="ml-2 p-1 rounded-full hover:bg-gray-200"
-				  title="Delete doctor"
-				  onClick={() => handleDeleteDoctor(d._id)}
-				  aria-label="Delete doctor"
-				>
-				  <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-				</button>
+				{/* Remove X icon for the first two default doctors by name */}
+				{!(d.name === 'Dr. Winston' || d.name === 'Dr. Sandra') && (
+				  <button
+					className="ml-2 p-1 rounded-full hover:bg-gray-200"
+					title="Delete doctor"
+					onClick={() => handleDeleteDoctor(d._id)}
+					aria-label="Delete doctor"
+				  >
+					<X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+				  </button>
+				)}
 			  </div>
 								</li>
 							))}

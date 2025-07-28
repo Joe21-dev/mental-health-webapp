@@ -22,11 +22,11 @@ const Chat = () => {
 
   // Bottom nav items (same as Dashboard)
   const navItems = [
-	{ icon: Home, label: 'Home', path: '/platform' },
-	{ icon: MessageCircle, label: 'Chat', path: '/platform/chat' },
-	{ icon: Calendar, label: 'Schedule', path: '/platform/scheduler' },
-	{ icon: Users, label: 'Therapists', path: '/platform/therapists' },
-	{ icon: Shield, label: 'Resources', path: '/platform/resources' }
+  { icon: Home, label: 'Home', path: '/platform' },
+  { icon: MessageCircle, label: 'Chat', path: '/platform/chat' },
+  { icon: Calendar, label: 'Schedule', path: '/platform/scheduler' },
+  { icon: Users, label: 'Therapists', path: '/platform/therapists' },
+  { icon: Shield, label: 'Resources', path: '/platform/resources' }
   ];
 
   // Desktop Header
@@ -113,9 +113,28 @@ const Chat = () => {
           </div>
           <span className="font-semibold">Health-Chat.ai</span>
         </div>
-         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-				<span className="text-white font-medium">U</span>
-			  </div>
+        {/* Avatar dropdown */}
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
+          <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
+          {showAvatarDropdown && (
+            <div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+              <div className="p-4 border-b border-gray-200">
+                <div className="font-bold text-lg text-blue-700">{userName || 'User'}</div>
+                <div className="text-sm text-gray-600">{userEmail || ''}</div>
+              </div>
+              <button
+                className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('userName');
+                  localStorage.removeItem('userEmail');
+                  window.location.href = '/signup';
+                }}
+              >Logout</button>
+            </div>
+          )}
+        </div>
       </header>
     );
     const MobileNavDrawer = () => (
