@@ -1,7 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -18,7 +19,6 @@ import goalsRouter from './routes/goals.js';
 import currentFocusRouter from './routes/currentFocus.js';
 import authRouter from './auth/index.js';
 import Therapist from './models/Therapist.js';
-// Line: After other imports like express, mongoose, cors, etc.
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import jwt from 'jsonwebtoken';
@@ -34,8 +34,6 @@ cloudinary.config({
 // Multer config
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-
-dotenv.config();
 
 // ES modules don't support __dirname directly, so use this workaround
 const __filename = fileURLToPath(import.meta.url);
