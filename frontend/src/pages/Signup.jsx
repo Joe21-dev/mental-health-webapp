@@ -35,11 +35,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess(''); setLoading(true);
-    if (!isPasswordValid || !hasSpecialChar) {
-      setError('Password must be at least 8 characters and contain a special character.');
-      setLoading(false);
-      return;
-    }
+    // Password validation removed: allow any password
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',

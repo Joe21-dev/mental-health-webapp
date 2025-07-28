@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain } from 'lucide-react';
+import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL;
@@ -51,6 +51,21 @@ export default function Therapists() {
 		setLoading(false);
 	  });
   }, []);
+
+  // Persist therapyTracker in sessionStorage
+  useEffect(() => {
+	const stored = sessionStorage.getItem('therapyTracker');
+	if (stored) {
+	  setTherapyTracker(JSON.parse(stored));
+	}
+  }, []);
+  useEffect(() => {
+	if (therapyTracker) {
+	  sessionStorage.setItem('therapyTracker', JSON.stringify(therapyTracker));
+	} else {
+	  sessionStorage.removeItem('therapyTracker');
+	}
+  }, [therapyTracker]);
 
 	useEffect(() => {
 		fetch(`${BACKEND_URL}/api/therapy-tracker`)
@@ -105,21 +120,23 @@ export default function Therapists() {
 	}
 
   function handleBook(d) {
+	// Only allow booking if no other doctor is booked or this doctor is already booked
+	if (!d.booked && bookedDoctorId && bookedDoctorId !== d._id) return;
 	const newBooked = !d.booked;
-		const bookingInfo = newBooked ? {
-			name: 'User',
-			day: 'Monday',
-			date: new Date().toISOString().slice(0,10),
-			description: 'Booked via button',
-			bookedAt: new Date().toISOString(),
-			condition: d.condition || userCondition,
-			therapy: d.therapy || recommendedTherapy
-		} : null;
+	const bookingInfo = newBooked ? {
+	  name: 'User',
+	  day: 'Monday',
+	  date: new Date().toISOString().slice(0,10),
+	  description: 'Booked via button',
+	  bookedAt: new Date().toISOString(),
+	  condition: d.condition || userCondition,
+	  therapy: d.therapy || recommendedTherapy
+	} : null;
 	fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ booked: newBooked, bookingInfo })
-		})
+	  method: 'PUT',
+	  headers: { 'Content-Type': 'application/json' },
+	  body: JSON.stringify({ booked: newBooked, bookingInfo })
+	})
 	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
 	  .then(res => res.json())
 	  .then(data => {
@@ -131,33 +148,50 @@ export default function Therapists() {
 		  setBookedDoctorId(null);
 		}
 		if (newBooked) {
-					const trackerData = {
-						user: 'User',
-						doctor: { name: d.name, specialty: d.specialty },
-						therapy: bookingInfo.therapy,
-						condition: bookingInfo.condition,
-						date: bookingInfo.date,
-						description: bookingInfo.description,
-						bookedAt: bookingInfo.bookedAt,
-						streak: (therapyTracker?.streak || 0) + 1,
-						longestStreak: Math.max((therapyTracker?.longestStreak || 0), (therapyTracker?.streak || 0) + 1)
-					};
-					setTherapyTracker(trackerData);
-					fetch(`${BACKEND_URL}/api/therapy-tracker`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(trackerData)
-					});
-				} else {
-					setTherapyTracker(null);
-					fetch(`${BACKEND_URL}/api/therapy-tracker`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ user: 'User', doctor: null, therapy: '', condition: '', date: '', description: '', bookedAt: '', streak: 0, longestStreak: therapyTracker?.longestStreak || 0 })
-					});
-				}
-			});
+		  const trackerData = {
+			user: 'User',
+			doctor: { name: d.name, specialty: d.specialty },
+			therapy: bookingInfo.therapy,
+			condition: bookingInfo.condition,
+			date: bookingInfo.date,
+			description: bookingInfo.description,
+			bookedAt: bookingInfo.bookedAt,
+			streak: (therapyTracker?.streak || 0) + 1,
+			longestStreak: Math.max((therapyTracker?.longestStreak || 0), (therapyTracker?.streak || 0) + 1)
+		  };
+		  setTherapyTracker(trackerData);
+		  fetch(`${BACKEND_URL}/api/therapy-tracker`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(trackerData)
+		  });
+		} else {
+		  setTherapyTracker(null);
+		  fetch(`${BACKEND_URL}/api/therapy-tracker`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ user: 'User', doctor: null, therapy: '', condition: '', date: '', description: '', bookedAt: '', streak: 0, longestStreak: therapyTracker?.longestStreak || 0 })
+		  });
+		}
+	  });
+  }
+
+  // Delete doctor handler
+  function handleDeleteDoctor(id) {
+	if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+	fetch(`${BACKEND_URL}/api/therapists/${id}`, {
+	  method: 'DELETE',
+	})
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(res => res.json())
+	  .then(data => setDoctors(data));
+	// If deleted doctor was booked, clear booking and tracker
+	if (bookedDoctorId === id) {
+	  setBookedDoctorId(null);
+	  setTherapyTracker(null);
+	  sessionStorage.removeItem('therapyTracker');
 	}
+  }
 
 	const Desktop = () => (
 		<div className='mb-6'>
@@ -291,13 +325,23 @@ export default function Therapists() {
 											)}
 										</div>
 									</div>
-			  <button
-				className={`px-3 py-1 rounded ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-				onClick={() => handleBook(d)}
-				disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
-			  >
-				{d.booked ? 'Unbook' : 'Book'}
-			  </button>
+			  <div className="flex items-center gap-2">
+				<button
+				  className={`px-3 py-1 rounded ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+				  onClick={() => handleBook(d)}
+				  disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
+				>
+				  {d.booked ? 'Unbook' : 'Book'}
+				</button>
+				<button
+				  className="ml-2 p-1 rounded-full hover:bg-gray-200"
+				  title="Delete doctor"
+				  onClick={() => handleDeleteDoctor(d._id)}
+				  aria-label="Delete doctor"
+				>
+				  <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+				</button>
+			  </div>
 								</li>
 							))}
 						</ul>

@@ -200,14 +200,14 @@ if (fs.existsSync(frontendDist)) {
 }
 
 
-// Keep Render.com or other services awake
-setInterval(async () => {
-  try {
-    await fetch(`${process.env.BASE_URL}/api/doctors/approve-pending`, { method: 'POST' });
-  } catch (err) {
-    console.log('Heartbeat failed silently:', err.message);
-  }
-}, 10 * 60 * 1000);
+// Keep Render.com or other services awake (DISABLED: endpoint does not exist or fails)
+// setInterval(async () => {
+//   try {
+//     await fetch(`${process.env.BASE_URL}/api/doctors/approve-pending`, { method: 'POST' });
+//   } catch (err) {
+//     console.log('Heartbeat failed silently:', err.message);
+//   }
+// }, 10 * 60 * 1000);
 
 // MongoDB connection
 const MONGO_URL = process.env.MONGO_URL;

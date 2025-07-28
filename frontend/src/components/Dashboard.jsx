@@ -275,13 +275,11 @@ const Dashboard = ({ showTherapistsProp = false }) => {
   }; 
 
   // Desktop Component
-const DesktopDashboard = () => {
-// Avatar dropdown state and user info
-const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
-const userName = localStorage.getItem('userName') || 'User';
-const userEmail = localStorage.getItem('userEmail') || 'No email';
+const DesktopDashboard = ({ userName, userEmail }) => {
+  // Avatar dropdown state
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
 
-return (
+  return (
 <div className="min-h-screen bg-gray-100 p-6 hidden lg:block">
 {/* Top Navigation */}
 <nav className="flex items-center justify-between mb-8">
@@ -690,13 +688,11 @@ poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format
 };
 
 // Mobile Component
-const MobileDashboard = () => {
-// Avatar dropdown state and user info
-const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
-const userName = localStorage.getItem('userName') || 'User';
-const userEmail = localStorage.getItem('userEmail') || 'No email';
+const MobileDashboard = ({ userName, userEmail }) => {
+  // Avatar dropdown state
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
 
-return (
+  return (
 <div className="min-h-screen bg-gray-100 lg:hidden flex flex-col">
 {/* Mobile Header */}
 <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-transparent'} px-4 py-3 flex items-center justify-between`}>
@@ -944,7 +940,30 @@ onClick={label === 'Home' ? () => navigate('/platform') : label === (label) ? ()
   
   
 
-  // Main Dashboard render
+  // User info state
+  const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('No email');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserName(data.name || 'User');
+          setUserEmail(data.email || 'No email');
+        }
+      } catch (e) {
+        // fallback to localStorage if needed
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <div>
       {showTherapists ? (
@@ -962,7 +981,7 @@ onClick={label === 'Home' ? () => navigate('/platform') : label === (label) ? ()
                 setBookedTherapist={setBookedTherapist}
                 onBookOrUnbook={handleBookOrUnbook}
                 onAddTherapist={handleAddTherapist}
-                setTherapyTracker={setTherapyTracker} // Pass setTherapyTracker to Therapists
+                setTherapyTracker={setTherapyTracker}
               />
             )}
           </div>
@@ -980,18 +999,17 @@ onClick={label === 'Home' ? () => navigate('/platform') : label === (label) ? ()
                 setBookedTherapist={setBookedTherapist}
                 onBookOrUnbook={handleBookOrUnbook}
                 onAddTherapist={handleAddTherapist}
-                setTherapyTracker={setTherapyTracker} // Pass setTherapyTracker to TherapistsMobile
+                setTherapyTracker={setTherapyTracker}
               />
             )}
           </div>
         </>
       ) : (
-       <>
-          <DesktopDashboard />
-          <MobileDashboard />
+        <>
+          <DesktopDashboard userName={userName} userEmail={userEmail} />
+          <MobileDashboard userName={userName} userEmail={userEmail} />
         </>
       )}
-       
     </div>
   );
 }

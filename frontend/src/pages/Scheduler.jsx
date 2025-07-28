@@ -83,11 +83,21 @@ const Scheduler = () => {
       });
   }, []);
 
-  // Build consistency map and streaks from checkins
+  // Build consistency map and streaks from checkins, starting from current focus start date
   useEffect(() => {
+    if (!currentFocus || !currentFocus.startDate) {
+      setConsistencyMap({});
+      setStreak(0);
+      setLongestStreak(0);
+      setCurrentDay(1);
+      return;
+    }
+    const startDate = new Date(currentFocus.startDate);
     const map = {};
-    let streakCount = 0, maxStreak = 0, lastDate = null;
-    const sorted = [...checkins].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let streakCount = 0, maxStreak = 0, lastDate = null, progress = 0;
+    // Only count checkins after or on the start date
+    const filtered = checkins.filter(c => new Date(c.date) >= startDate);
+    const sorted = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
     sorted.forEach(c => {
       const d = new Date(c.date);
       if (!map[d.getFullYear()]) map[d.getFullYear()] = {};
@@ -102,12 +112,13 @@ const Scheduler = () => {
       }
       if (streakCount > maxStreak) maxStreak = streakCount;
       lastDate = d;
+      progress++;
     });
     setConsistencyMap(map);
     setStreak(streakCount);
     setLongestStreak(maxStreak);
-    setCurrentDay(streakCount); // Sync progress tracker with streak
-  }, [checkins]);
+    setCurrentDay(progress > 0 ? progress : 1); // Progress is number of checkins since start
+  }, [checkins, currentFocus]);
 
   // Update totalDays from currentFocus
   useEffect(() => {

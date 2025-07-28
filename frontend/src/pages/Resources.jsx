@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useResourcePlayer } from '../ResourcePlayerContext';
 import { 
   Home, 
   Search, 
@@ -40,9 +41,10 @@ const Resources = () => {
   const [filterType, setFilterType] = useState('all');
   const [showApiKeyInfo, setShowApiKeyInfo] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [activeResource, setActiveResource] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
+  // Use global player state from context
+  const { activeResource, setActiveResource, isPlaying, setIsPlaying, audioRef } = useResourcePlayer();
+
+  // No need for workaround, context keeps player alive
   // For continuous playback
   const PLAYBACK_KEY = 'resourcePlayback';
 
@@ -88,34 +90,7 @@ const Resources = () => {
     fetchResources();
   }, [filterType, searchTerm]);
 
-  // Sync active resource across tabs/devices using localStorage
-  useEffect(() => {
-    const storedActive = localStorage.getItem('activeResource');
-    if (storedActive) {
-      try {
-        setActiveResource(JSON.parse(storedActive));
-      } catch {}
-    }
-    // Restore playback state
-    const pb = localStorage.getItem(PLAYBACK_KEY);
-    if (pb && audioRef.current) {
-      try {
-        const { time, playing } = JSON.parse(pb);
-        audioRef.current.currentTime = time || 0;
-        if (playing) {
-          setTimeout(() => audioRef.current && audioRef.current.play(), 200);
-        }
-      } catch {}
-    }
-  }, []);
-  useEffect(() => {
-    if (activeResource) {
-      localStorage.setItem('activeResource', JSON.stringify(activeResource));
-    } else {
-      localStorage.removeItem('activeResource');
-      localStorage.removeItem(PLAYBACK_KEY);
-    }
-  }, [activeResource]);
+  // Remove all localStorage sync for player state
 
   // Delete resource handler
   const handleDeleteResource = async (resource) => {
@@ -136,7 +111,6 @@ const Resources = () => {
         <span className="text-lg font-semibold">Select a resource:</span>
       </div>
     );
-  };
       return (
         <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-3xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -155,26 +129,8 @@ const Resources = () => {
               autoPlay={isPlaying}
               src={activeResource.url}
               className="w-full max-w-lg mb-4 bg-gray-900 rounded-xl shadow-lg border border-blue-400"
-              onPlay={() => {
-                setIsPlaying(true);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: true
-                }));
-              }}
-              onPause={() => {
-                setIsPlaying(false);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: false
-                }));
-              }}
-              onTimeUpdate={() => {
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: !audioRef.current?.paused
-                }));
-              }}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
             >
               Your browser does not support the audio element.
             </audio>
@@ -203,6 +159,12 @@ const Resources = () => {
                 }}
                 disabled={!activeResource}
               ><SkipForward size={16} /></button>
+              {/* Delete button for active resource */}
+              <button
+                className="px-2 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow transition ml-2"
+                onClick={() => handleDeleteResource(activeResource)}
+                title="Delete this resource"
+              ><X size={16} /></button>
             </div>
           </div>
         </div>
@@ -263,8 +225,7 @@ const Resources = () => {
       );
     }
     // End of ActiveCard
-  };
-    }
+  
 
   const PodcastsCard = () => (
     <div className="relative" style={CARD_STYLE}>
@@ -280,11 +241,14 @@ const Resources = () => {
                 <div className="font-semibold text-purple-100">{podcast.title}</div>
                 <div className="text-xs text-purple-200">{podcast.host} • {podcast.duration} • {podcast.type}</div>
               </div>
-              {podcast.url ? (
-                <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(podcast); }}>
-                  <Play size={16} />
-                </button>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {podcast.url ? (
+                  <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(podcast); }}>
+                    <Play size={16} />
+                  </button>
+                ) : null}
+                <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(podcast); }} title="Delete"><X size={16} /></button>
+              </div>
             </li>
           ))}
         </ul>
@@ -330,7 +294,10 @@ const Resources = () => {
                 <div className="font-semibold text-green-100">{book.title}</div>
                 <div className="text-xs text-green-200">{book.author}</div>
               </div>
-              <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
+              <div className="flex items-center gap-2">
+                <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
+                <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(book); }} title="Delete"><X size={16} /></button>
+              </div>
             </li>
           ))}
         </ul>
@@ -375,7 +342,10 @@ const Resources = () => {
                 <div className="font-semibold text-orange-100">{video.title}</div>
                 <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>
               </div>
-              <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+              <div className="flex items-center gap-2">
+                <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+                <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
+              </div>
             </li>
           ))}
         </ul>
@@ -690,5 +660,6 @@ const Resources = () => {
       </div>
     </div>
   );
+}
 
 export default Resources;

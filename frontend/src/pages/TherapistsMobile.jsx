@@ -58,6 +58,21 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 	  });
   }, []);
 
+  // Persist therapyTracker in sessionStorage
+  useEffect(() => {
+	const stored = sessionStorage.getItem('therapyTrackerMobile');
+	if (stored) {
+	  setTherapyTracker(JSON.parse(stored));
+	}
+  }, []);
+  useEffect(() => {
+	if (therapyTracker) {
+	  sessionStorage.setItem('therapyTrackerMobile', JSON.stringify(therapyTracker));
+	} else {
+	  sessionStorage.removeItem('therapyTrackerMobile');
+	}
+  }, [therapyTracker]);
+
 	function handleChange(e) {
 		const { name, value } = e.target;
 		setForm(f => ({ ...f, [name]: value }));
@@ -90,7 +105,8 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 	}
 
   function handleBook(d) {
-	// Toggle booking status immediately, no modal
+	// Only allow booking if no other doctor is booked or this doctor is already booked
+	if (!d.booked && bookedDoctorId && bookedDoctorId !== d._id) return;
 	const newBooked = !d.booked;
 	const bookingPayload = newBooked ? {
 	  name: 'User',
@@ -129,6 +145,23 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 		  setTherapyTracker(null);
 		}
 	  });
+  }
+
+  // Delete doctor handler
+  function handleDeleteDoctor(id) {
+	if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+	fetch(`${BACKEND_URL}/api/therapists/${id}`, {
+	  method: 'DELETE',
+	})
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(res => res.json())
+	  .then(data => setDoctors(data));
+	// If deleted doctor was booked, clear booking and tracker
+	if (bookedDoctorId === id) {
+	  setBookedDoctorId(null);
+	  setTherapyTracker(null);
+	  sessionStorage.removeItem('therapyTrackerMobile');
+	}
   }
 
 	function stringToColor(str) {
@@ -251,34 +284,44 @@ const [bookedDoctorId, setBookedDoctorId] = useState(null);
 				<div className="text-gray-500">No doctors available.</div>
 			) : (
 				<ul className="space-y-4 mb-6">
-					{doctors.map(d => (
-						<li key={d._id} className="bg-white rounded-xl p-3 flex items-center justify-between">
-							<div className="flex items-center space-x-2">
-								{/* Doctor avatar as first letter with unique bg color */}
-								<div
-									className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base`}
-									style={{ background: stringToColor(d.name) }}
-								>
-									{d.name ? d.name.trim()[4].toUpperCase() : 'D'}
-								</div>
-								<div>
-									<div className="font-semibold text-sm">{d.name}</div>
-									<div className="text-xs text-gray-600">{d.specialty || ''}</div>
-									<div className="text-xs text-gray-400">{d.status || ''}</div>
-									{d.booked && d.bookingInfo && (
-										<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
-									)}
-								</div>
-							</div>
-			  <button
-				className={`px-2 py-1 rounded text-xs ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-				onClick={() => handleBook(d)}
-				disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
-			  >
-				{d.booked ? 'Unbook' : 'Book'}
-			  </button>
-						</li>
-					))}
+				  {doctors.map(d => (
+					<li key={d._id} className="bg-white rounded-xl p-3 flex items-center justify-between">
+					  <div className="flex items-center space-x-2">
+						{/* Doctor avatar as first letter with unique bg color */}
+						<div
+						  className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base`}
+						  style={{ background: stringToColor(d.name) }}
+						>
+						  {d.name ? d.name.trim()[0].toUpperCase() : 'D'}
+						</div>
+						<div>
+						  <div className="font-semibold text-sm">{d.name}</div>
+						  <div className="text-xs text-gray-600">{d.specialty || ''}</div>
+						  <div className="text-xs text-gray-400">{d.status || ''}</div>
+						  {d.booked && d.bookingInfo && (
+							<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
+						  )}
+						</div>
+					  </div>
+					  <div className="flex items-center gap-2">
+						<button
+						  className={`px-2 py-1 rounded text-xs ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+						  onClick={() => handleBook(d)}
+						  disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
+						>
+						  {d.booked ? 'Unbook' : 'Book'}
+						</button>
+						<button
+						  className="ml-1 p-1 rounded-full hover:bg-gray-200"
+						  title="Delete doctor"
+						  onClick={() => handleDeleteDoctor(d._id)}
+						  aria-label="Delete doctor"
+						>
+						  <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+						</button>
+					  </div>
+					</li>
+				  ))}
 				</ul>
 			)}
 			{/* Add Doctor Modal */}
