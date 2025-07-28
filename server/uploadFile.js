@@ -9,6 +9,7 @@ import { getAudioVideoDuration, getPdfPageCount } from './detectFileMeta.js';
 import cloudinary from './cloudinaryConfig.js';
 import { v2 as cloudinaryV2 } from 'cloudinary';
 import dotenv from 'dotenv';
+import { PassThrough } from 'stream';
 
 dotenv.config(); // Load .env variables
 
@@ -69,7 +70,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
           }
           resolve(result);
         });
-        const bufferStream = require('stream').PassThrough();
+        const bufferStream = new PassThrough();
         bufferStream.end(fileBuffer);
         bufferStream.pipe(stream);
       });
