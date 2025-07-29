@@ -135,6 +135,65 @@ const Resources = () => {
 
   // Defensive check for activeResource in ActiveCard
 
+// SongsCard definition
+const SongsCard = () => (
+  <div className="relative" style={{ minHeight: '200px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, #3b82f6 10%, #a5b4fc 100%)', overflow: 'hidden' }}>
+    <div className="absolute inset-0 bg-blue-900/60 rounded-3xl"></div>
+    <div className="relative z-10 p-6 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold cursor-pointer text-blue-100" onClick={() => setShowList('songs')}>Songs</h3>
+      </div>
+      <ul className="space-y-3 flex-1 overflow-y-auto">
+        {resourceData.songs.slice(0, 4).map((song, idx) => {
+          if (!song || typeof song !== 'object') return null;
+          return (
+            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(song)}>
+              <div>
+                <div className="font-semibold text-blue-100">{song.title}</div>
+                <div className="text-xs text-blue-200">{song.artist} • {song.duration} • {song.type}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                {song.url ? (
+                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(song); }}>
+                    <Play size={16} />
+                  </button>
+                ) : null}
+                <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {/* Modal for all songs */}
+      {showList === 'songs' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
+            <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
+            <h3 className="font-semibold text-lg mb-4 text-blue-700">All Songs</h3>
+            <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
+              {resourceData.songs.map((song, idx) => {
+                if (!song || typeof song !== 'object') return null;
+                return (
+                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { setActiveResource(song); setShowList(null); }}>
+                    <div>
+                      <div className="font-semibold text-blue-700">{song.title}</div>
+                      <div className="text-xs text-gray-500">{song.artist} • {song.duration} • {song.type}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`}><Play size={16} /></button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
   const ActiveCard = () => {
     // Defensive: check for null, undefined, or non-object activeResource
     if (!activeResource || typeof activeResource !== 'object') {

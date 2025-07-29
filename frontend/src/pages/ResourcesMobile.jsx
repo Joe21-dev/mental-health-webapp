@@ -23,6 +23,8 @@ const ResourcesMobile = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [uploadForm, setUploadForm] = useState({
@@ -149,7 +151,7 @@ const ResourcesMobile = () => {
       </header>
       );
       const MobileNavDrawer = () => (
-      mobileMenuOpen && (
+        mobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
         <div className="w-64 h-full p-4 bg-white" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
@@ -526,6 +528,23 @@ const ResourcesMobile = () => {
     }
   };
 
+  // Password check logic
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (passwordInput === 'root') {
+      setShowPasswordModal(false);
+      setShowUploadModal(true);
+    } else {
+      setShowPasswordModal(false);
+      setUploadError('You require admin priviledges to add a resource');
+    }
+  };
+
+  const handleShowUploadModal = () => {
+    setPasswordInput('');
+    setShowPasswordModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Mobile Header */}
@@ -569,7 +588,7 @@ const ResourcesMobile = () => {
       <button
         className="fixed bottom-20 right-6 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
         style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
-        onClick={() => setShowUploadModal(true)}
+        onClick={handleShowUploadModal}
         aria-label="Upload Resource"
       >
         <Plus size={28} />
@@ -627,6 +646,17 @@ const ResourcesMobile = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Password Modal (z-60, above upload modal) */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60" onClick={() => setShowPasswordModal(false)}>
+          <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()} onSubmit={handlePasswordSubmit}>
+            <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowPasswordModal(false)} aria-label="Close"><X size={24} /></button>
+            <h2 className="text-xl font-bold mb-2 text-blue-700">Admin Password</h2>
+            <input type="password" name="password" placeholder="Enter password" required className="border rounded-lg px-3 py-2" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} autoFocus />
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold mt-2">Continue</button>
+          </form>
         </div>
       )}
     </div>

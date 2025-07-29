@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Users, BookOpen, MessageCircle, Shield, Search, Brain, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL;
 
@@ -29,20 +30,21 @@ export default function Therapists() {
 	const [therapyTracker, setTherapyTracker] = useState(null);
 	const [userCondition, setUserCondition] = useState('');
 	const [recommendedTherapy, setRecommendedTherapy] = useState('');
+	const [userId, setUserId] = useState(null);
 	const navigate = useNavigate();
 
   useEffect(() => {
 	setLoading(true);
 	setError(null);
-	fetch(`${BACKEND_URL}/api/therapists`)
+	fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`)
 	  .then(res => {
 		if (!res.ok) throw new Error('Failed to fetch therapists');
 		return res.json();
 	  })
 	  .then(data => {
 		setDoctors(data);
-		// Find if any doctor is booked by the user
-		const booked = data.find(d => d.booked);
+		// Find if any doctor is booked by this user
+		const booked = data.find(d => d.bookedBy === userId);
 		setBookedDoctorId(booked ? booked._id : null);
 		setLoading(false);
 	  })
@@ -50,7 +52,7 @@ export default function Therapists() {
 		setError('Could not fetch therapists. Please check your connection or try again later.');
 		setLoading(false);
 	  });
-  }, []);
+  }, [userId]);
 
   // Persist therapyTracker in sessionStorage
   useEffect(() => {
@@ -101,14 +103,17 @@ export default function Therapists() {
 		  .then(data => {
 			setUserName(data.name || '');
 			setUserEmail(data.email || '');
+			setUserId(data.id || data._id || null);
 		  })
 		  .catch(() => {
 			setUserName('');
 			setUserEmail('');
+			setUserId(null);
 		  });
 	  } else {
 		setUserName(localStorage.getItem('userName') || '');
 		setUserEmail(localStorage.getItem('userEmail') || '');
+		setUserId(localStorage.getItem('userId') || null);
 	  }
 	}, []);
 
@@ -128,17 +133,16 @@ export default function Therapists() {
 	function handleSubmit(e) {
 		e.preventDefault();
 		if (!form.name.trim() || !form.specialty.trim()) return;
-		fetch(`${BACKEND_URL}/api/therapists`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				name: form.name,
-				specialty: form.specialty,
-				avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-				condition: userCondition,
-				therapy: recommendedTherapy
-			}),
-		})
+	fetch(`${BACKEND_URL}/api/therapists`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			name: form.name,
+			specialty: form.specialty,
+			condition: userCondition,
+			therapy: recommendedTherapy
+		}),
+	})
 			.then(() => fetch(`${BACKEND_URL}/api/therapists`))
 			.then(res => res.json())
 			.then(data => setDoctors(data));
@@ -149,11 +153,13 @@ export default function Therapists() {
 	}
 
   function handleBook(d) {
-	// Only allow booking if no other doctor is booked or this doctor is already booked
-	if (!d.booked && bookedDoctorId && bookedDoctorId !== d._id) return;
-	const newBooked = !d.booked;
+	if (!userId) return toast.error('You must be logged in to book a doctor');
+	// Only allow booking if no other doctor is booked by this user or this doctor is already booked by this user
+	if (!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id) return;
+	const newBooked = !d.bookedBy;
 	const bookingInfo = newBooked ? {
-	  name: 'User',
+	  userId,
+	  name: userName,
 	  day: 'Monday',
 	  date: new Date().toISOString().slice(0,10),
 	  description: 'Booked via button',
@@ -166,7 +172,7 @@ export default function Therapists() {
 	  headers: { 'Content-Type': 'application/json' },
 	  body: JSON.stringify({ booked: newBooked, bookingInfo })
 	})
-	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`))
 	  .then(res => res.json())
 	  .then(data => {
 		setDoctors(data);
@@ -212,17 +218,6 @@ export default function Therapists() {
 	const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
 	  method: 'DELETE',
 	});
-	if (res.status === 404) {
-	  // Therapist not found, remove from UI anyway
-	  setDoctors(prev => prev.filter(d => d._id !== id));
-	  if (bookedDoctorId === id) {
-		setBookedDoctorId(null);
-		setTherapyTracker(null);
-		sessionStorage.removeItem('therapyTracker');
-	  }
-	  alert('Doctor not found on server. Removed from your list.');
-	  return;
-	}
 	if (!res.ok) throw new Error('Failed to delete doctor');
 	setDoctors(prev => prev.filter(d => d._id !== id));
 	if (bookedDoctorId === id) {
@@ -344,9 +339,6 @@ export default function Therapists() {
 					<div className="flex justify-between items-center mb-4">
 						<h2 className="font-bold text-xl">Doctors</h2>
 						<div className="flex gap-2">
-							<button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowForm(true)}>
-								Add Doctor
-							</button>
 							<button className="bg-purple-500 text-white px-4 py-2 rounded" onClick={() => setShowUserForm(true)}>
 								Add Condition
 							</button>
@@ -364,22 +356,18 @@ export default function Therapists() {
 								<li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
 									<div className="flex items-center space-x-3">
 										{/* Doctor avatar as image if available, else first letter with unique bg color */}
-										{d.avatar ? (
-											<img src={d.avatar} alt={d.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
-										) : (
-											<div
-												className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
-												style={{ background: stringToColor(d.name) }}
-											>
-												{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
-											</div>
-										)}
+									<div
+										className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
+										style={{ background: stringToColor(d.name) }}
+									>
+										{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
+									</div>
 										<div>
 											<div className="font-semibold">{d.name}</div>
 											<div className="text-sm text-gray-600">{d.specialty || ''}</div>
 											<div className="text-xs text-gray-400">{d.status || ''}</div>
-											{d.booked && d.bookingInfo && (
-												<div className="text-xs text-green-600 mt-1">Booked by: {d.bookingInfo.name} on {d.bookingInfo.date}</div>
+											{d.bookedBy === userId && d.bookingInfo && (
+												<div className="text-xs text-green-600 mt-1">Booked by you on {d.bookingInfo.date}</div>
 											)}
 											{/* Show createdAt and approvedAt if present */}
 											<div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
@@ -390,23 +378,20 @@ export default function Therapists() {
 									</div>
 			  <div className="flex items-center gap-2">
 				<button
-				  className={`px-3 py-1 rounded ${d.booked ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+				  className={`px-3 py-1 rounded ${d.bookedBy === userId ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
 				  onClick={() => handleBook(d)}
-				  disabled={(!d.booked && bookedDoctorId && bookedDoctorId !== d._id)}
+				  disabled={(!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id)}
 				>
-				  {d.booked ? 'Unbook' : 'Book'}
+				  {d.bookedBy === userId ? 'Unbook' : 'Book'}
 				</button>
-				{/* Remove X icon for the first two default doctors by name */}
-				{!(d.name === 'Dr. Winston' || d.name === 'Dr. Sandra') && (
-				  <button
-					className="ml-2 p-1 rounded-full hover:bg-gray-200"
-					title="Delete doctor"
-					onClick={() => handleDeleteDoctor(d._id)}
-					aria-label="Delete doctor"
-				  >
-					<X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-				  </button>
-				)}
+				<button
+				  className="ml-2 p-1 rounded-full hover:bg-gray-200"
+				  title="Delete doctor"
+				  onClick={() => handleDeleteDoctor(d._id)}
+				  aria-label="Delete doctor"
+				>
+				  <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+				</button>
 			  </div>
 								</li>
 							))}

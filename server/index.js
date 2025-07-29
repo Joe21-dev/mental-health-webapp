@@ -237,21 +237,19 @@ mongoose.connection.on('connected', async () => {
   if (count === 0) {
     await Therapist.create([
       {
-        name: 'Dr. Winston',
+        name: 'Winston',
         specialty: 'Cognitive Behavioral Therapy',
         status: 'approved',
-        avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=60&h=60&fit=crop&crop=face',
         booked: false
       },
       {
-        name: 'Dr. Sandra',
+        name: 'Sandra',
         specialty: 'Mindfulness',
         status: 'approved',
-        avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
         booked: false
       }
     ]);
-    console.log('Seeded default therapists');
+    console.log('Seeded default therapists (no avatar, name only)');
   }
 });
 

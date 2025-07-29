@@ -9,6 +9,7 @@ const BACKEND_URL = import.meta.env.VITE_API_URL;
 const Scheduler = () => {
   const [schedules, setSchedules] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [userId, setUserId] = useState(null);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -54,15 +55,16 @@ const Scheduler = () => {
   // Fetch schedules, goals, check-ins, and current focus from backend in real time
   useEffect(() => {
     const fetchData = () => {
-      fetch(`${BACKEND_URL}/api/schedules`).then(res => res.json()).then(setSchedules);
-      fetch(`${BACKEND_URL}/api/goals`).then(res => res.json()).then(setGoals);
-      fetch(`${BACKEND_URL}/api/checkins`).then(res => res.json()).then(setCheckins);
-      fetch(`${BACKEND_URL}/api/current-focus`).then(res => res.json()).then(setCurrentFocus);
+      if (!userId) return;
+      fetch(`${BACKEND_URL}/api/schedules?userId=${userId}`).then(res => res.json()).then(setSchedules);
+      fetch(`${BACKEND_URL}/api/goals?userId=${userId}`).then(res => res.json()).then(setGoals);
+      fetch(`${BACKEND_URL}/api/checkins?userId=${userId}`).then(res => res.json()).then(setCheckins);
+      fetch(`${BACKEND_URL}/api/current-focus?userId=${userId}`).then(res => res.json()).then(setCurrentFocus);
     };
     fetchData();
     const interval = setInterval(fetchData, 5000); // Poll every 5s for real-time updates
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   // On mount, POST to /api/checkins for today and increment progress
   useEffect(() => {
@@ -147,7 +149,7 @@ const Scheduler = () => {
     fetch(endpoint, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scheduleForm)
+      body: JSON.stringify({ ...scheduleForm, userId })
     })
       .then(async res => {
         if (!res.ok) throw new Error('Failed to save');
@@ -175,7 +177,7 @@ const Scheduler = () => {
     fetch(endpoint, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(goalForm)
+      body: JSON.stringify({ ...goalForm, userId })
     })
       .then(async res => {
         if (!res.ok) throw new Error('Failed to save');
@@ -185,7 +187,7 @@ const Scheduler = () => {
         await fetch(`${BACKEND_URL}/api/current-focus`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30 })
+          body: JSON.stringify({ title: data.title, startDate: data.date, duration: data.duration || 30, userId })
         });
         setCurrentFocus({ title: data.title, startDate: data.date, duration: data.duration || 30 });
         toast.success(editingItem ? 'Goal updated!' : 'Goal added!');
@@ -325,6 +327,29 @@ const Scheduler = () => {
     });
   }
 
+  // Persist schedules and goals in sessionStorage for navigation persistence
+  useEffect(() => {
+    if (schedules && schedules.length > 0) {
+      sessionStorage.setItem('userSchedules', JSON.stringify(schedules));
+    }
+  }, [schedules]);
+  useEffect(() => {
+    if (goals && goals.length > 0) {
+      sessionStorage.setItem('userGoals', JSON.stringify(goals));
+    }
+  }, [goals]);
+  // On mount, restore schedules and goals from sessionStorage if available
+  useEffect(() => {
+    const storedSchedules = sessionStorage.getItem('userSchedules');
+    if (storedSchedules) {
+      setSchedules(JSON.parse(storedSchedules));
+    }
+    const storedGoals = sessionStorage.getItem('userGoals');
+    if (storedGoals) {
+      setGoals(JSON.parse(storedGoals));
+    }
+  }, []);
+
   // Responsive header (copied from Therapists)
   const Header = () => (
     <nav className="flex items-center justify-between pt-6 mb-8">
@@ -431,14 +456,17 @@ const Scheduler = () => {
         .then(data => {
           setUserName(data.name || '');
           setUserEmail(data.email || '');
+          setUserId(data.id || data._id || null);
         })
         .catch(() => {
           setUserName('');
           setUserEmail('');
+          setUserId(null);
         });
     } else {
       setUserName(localStorage.getItem('userName') || '');
       setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserId(localStorage.getItem('userId') || null);
     }
   }, []);
 
@@ -625,7 +653,7 @@ const Scheduler = () => {
                 <h4 className="flex items-center font-semibold text-blue-600 text-md"><Clock className="w-4 h-4 mr-1" /> Daily Schedules</h4>
               </div>
               <ul className="space-y-3">
-                {schedules.filter(s => s && s.date && s.title && typeof s === 'object').map(s => {
+                {schedules.filter(s => s && s.date && s.title && typeof s === 'object' && s.userId === userId).map(s => {
                   try {
                     const d = new Date(s.date);
                     if (
@@ -664,7 +692,7 @@ const Scheduler = () => {
                   <button className="p-2 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg" onClick={() => { setShowGoalForm(true); setEditingItem(null); }}><Plus className="w-4 h-4" /></button>
                 </div>
                 <ul className="space-y-2">
-                  {goals && goals.filter(g => g && g.type && g.title && typeof g === 'object').map(g => (
+                  {goals && goals.filter(g => g && g.type && g.title && typeof g === 'object' && g.userId === userId).map(g => (
                     <li key={g._id} className={`rounded-xl p-3 flex items-center justify-between bg-${g.color || 'green'}-50 backdrop-blur-sm bg-opacity-80`}>
                       <div className="flex items-center space-x-3">
                         {g.type === 'weekly' && <TrendingUp className="w-5 h-5 text-orange-500" />}
