@@ -342,23 +342,24 @@ className="pl-10 pr-4 py-2 bg-white rounded-full border border-gray-200 focus:ou
 {/* Avatar dropdown */}
 <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
 <span className="text-white font-bold text-lg">{userName[0].toUpperCase()}</span>
-{showAvatarDropdown && (
-<div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
-<div className="p-4 border-b border-gray-200">
-<div className="font-bold text-lg text-blue-700">{userName}</div>
-<div className="text-sm text-gray-600">{userEmail}</div>
-</div>
-<button
-className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
-onClick={() => {
-localStorage.removeItem('token');
-localStorage.removeItem('userName');
-localStorage.removeItem('userEmail');
-window.location.href = '/signup';
-}}
->Logout</button>
-</div>
-)}
+    {showAvatarDropdown && (
+      <div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+        <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={e => { e.stopPropagation(); setShowAvatarDropdown(false); }} aria-label="Close"><X /></button>
+        <div className="p-4 border-b border-gray-200">
+          <div className="font-bold text-lg text-blue-700">{userName}</div>
+          <div className="text-sm text-gray-600">{userEmail}</div>
+        </div>
+        <button
+          className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '/signup';
+          }}
+        >Logout</button>
+      </div>
+    )}
 </div>
 </div>
 </nav>
@@ -707,23 +708,24 @@ const MobileDashboard = ({ userName, userEmail }) => {
 </div>
 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
 <span className="text-white font-bold text-base">{userName[0].toUpperCase()}</span>
-{showAvatarDropdown && (
-<div className="absolute right-0 mt-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
-<div className="p-4 border-b border-gray-200">
-<div className="font-bold text-lg text-blue-700">{userName}</div>
-<div className="text-sm text-gray-600">{userEmail}</div>
-</div>
-<button
-className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
-onClick={() => {
-localStorage.removeItem('token');
-localStorage.removeItem('userName');
-localStorage.removeItem('userEmail');
-window.location.href = '/signup';
-}}
->Logout</button>
-</div>
-)}
+    {showAvatarDropdown && (
+      <div className="absolute right-0 mt-45 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+        <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={e => { e.stopPropagation(); setShowAvatarDropdown(false); }} aria-label="Close"><X /></button>
+        <div className="p-4 border-b border-gray-200">
+          <div className="font-bold text-lg text-blue-700">{userName}</div>
+          <div className="text-sm text-gray-600">{userEmail}</div>
+        </div>
+        <button
+          className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = '/signup';
+          }}
+        >Logout</button>
+      </div>
+    )}
 </div>
 </header>
 
@@ -799,7 +801,7 @@ onClick={label === 'Home' ? () => { setMobileMenuOpen(false); navigate('/platfor
 <div className="flex items-center justify-between">
 <div>
 <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs">Daily Workout</span>
-<h4 className="font-semibold text-sm mt-1">Building Confidence</h4>
+<h4 className="font-semibold text-sm mt-1">Staying Healthy</h4>
 </div>
 <ChevronRight className="w-5 h-5 text-blue-500" />
 </div>
