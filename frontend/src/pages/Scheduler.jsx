@@ -413,6 +413,35 @@ const Scheduler = () => {
     </nav>
   );
 
+  // Avatar dropdown state
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+
+  // User info state
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  // Fetch user info from backend if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUserName(data.name || '');
+          setUserEmail(data.email || '');
+        })
+        .catch(() => {
+          setUserName('');
+          setUserEmail('');
+        });
+    } else {
+      setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+    }
+  }, []);
+
   // Mobile Header and Bottom Nav
   const MobileHeader = () => (
     <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-transparent'} px-4 py-3 flex items-center justify-between lg:hidden`}>

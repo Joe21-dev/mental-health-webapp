@@ -56,9 +56,6 @@ const Resources = () => {
       return () => clearTimeout(timer);
     }
   }, [showInfo]);
-   // Get userName and userEmail from localStorage or default
-  const userName = localStorage.getItem('userName') || '';
-  const userEmail = localStorage.getItem('userEmail') || '';
 
   // Fetch resources function
   const fetchResources = () => {
@@ -87,6 +84,35 @@ const Resources = () => {
         setLoading(false);
       });
   };
+
+  // Avatar dropdown state
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+
+  // User info state
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  // Fetch user info from backend if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUserName(data.name || '');
+          setUserEmail(data.email || '');
+        })
+        .catch(() => {
+          setUserName('');
+          setUserEmail('');
+        });
+    } else {
+      setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+    }
+  }, []);
 
   // Initial fetch
   useEffect(() => {

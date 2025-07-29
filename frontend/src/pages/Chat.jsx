@@ -29,9 +29,35 @@ const Chat = () => {
   { icon: Shield, label: 'Resources', path: '/platform/resources' }
   ];
 
-  // Get userName and userEmail from localStorage or default
-  const userName = localStorage.getItem('userName') || '';
-  const userEmail = localStorage.getItem('userEmail') || '';
+
+  // Avatar dropdown state
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+
+  // User info state
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  // Fetch user info from backend if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUserName(data.name || '');
+          setUserEmail(data.email || '');
+        })
+        .catch(() => {
+          setUserName('');
+          setUserEmail('');
+        });
+    } else {
+      setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+    }
+  }, []);
 
   // Desktop Header
   const DesktopHeader = () => (

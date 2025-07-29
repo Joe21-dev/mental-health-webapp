@@ -82,9 +82,35 @@ export default function Therapists() {
 		}
 	  }, [showInfo]);
 	
-	    // Get userName and userEmail from localStorage or default
-		const userName = localStorage.getItem('userName') || '';
-		const userEmail = localStorage.getItem('userEmail') || '';
+
+	// Avatar dropdown state
+	const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+
+	// User info state
+	const [userName, setUserName] = useState('');
+	const [userEmail, setUserEmail] = useState('');
+
+	// Fetch user info from backend if token exists
+	useEffect(() => {
+	  const token = localStorage.getItem('token');
+	  if (token) {
+		fetch(`${BACKEND_URL}/api/auth/me`, {
+		  headers: { Authorization: `Bearer ${token}` }
+		})
+		  .then(res => res.json())
+		  .then(data => {
+			setUserName(data.name || '');
+			setUserEmail(data.email || '');
+		  })
+		  .catch(() => {
+			setUserName('');
+			setUserEmail('');
+		  });
+	  } else {
+		setUserName(localStorage.getItem('userName') || '');
+		setUserEmail(localStorage.getItem('userEmail') || '');
+	  }
+	}, []);
 
 	function handleChange(e) {
 		const { name, value } = e.target;
@@ -262,26 +288,26 @@ export default function Therapists() {
 				/>
 			  </div>
 			 {/* Avatar dropdown */}
-        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
-          <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
-          {showAvatarDropdown && (
-            <div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
-              <div className="p-4 border-b border-gray-200">
-                <div className="font-bold text-lg text-blue-700">{userName || 'User'}</div>
-                <div className="text-sm text-gray-600">{userEmail || ''}</div>
-              </div>
-              <button
-                className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  localStorage.removeItem('user');
-                  localStorage.removeItem('userName');
-                  localStorage.removeItem('userEmail');
-                  window.location.href = '/signup';
-                }}
-              >Logout</button>
-            </div>
-          )}
+		<div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
+		  <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
+		  {showAvatarDropdown && (
+			<div className="absolute right-0 mt-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+			  <div className="p-4 border-b border-gray-200">
+				<div className="font-bold text-lg text-blue-700">{userName || 'User'}</div>
+				<div className="text-sm text-gray-600">{userEmail || ''}</div>
+			  </div>
+			  <button
+				className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-b-xl font-semibold"
+				onClick={() => {
+				  localStorage.removeItem('token');
+				  localStorage.removeItem('user');
+				  localStorage.removeItem('userName');
+				  localStorage.removeItem('userEmail');
+				  window.location.href = '/signup';
+				}}
+			  >Logout</button>
+			</div>
+		  )}
 		  </div>
 			  
 			</div>
