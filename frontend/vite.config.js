@@ -20,5 +20,8 @@ export default defineConfig({
   } : undefined,
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      external: [],
+    },
   },
 })
