@@ -52,7 +52,7 @@ const app = express();
 
 // Improved CORS config for local and hosted access
 const prodOrigins = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
-const allowedOrigins = [
+const allowedOrigins = Array.from(new Set([
   ...prodOrigins,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -60,7 +60,7 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://localhost',
   'http://127.0.0.1'
-];
+]));
 console.log('Allowed origins for CORS:', allowedOrigins);
 
 app.use(cors({

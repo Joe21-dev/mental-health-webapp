@@ -584,13 +584,16 @@ const Scheduler = () => {
                   const days = [];
                   const firstDay = getFirstDayOfWeek(calendarDate.month, calendarDate.year);
                   const numDays = getDaysInMonth(calendarDate.month, calendarDate.year);
+                  const today = new Date();
+                  const isCurrentMonth = calendarDate.month === today.getMonth() && calendarDate.year === today.getFullYear();
                   for (let i = 0; i < firstDay; i++) days.push(<div key={"empty-"+i} className="h-8 lg:h-10" />);
                   for (let d = 1; d <= numDays; d++) {
                     const isConsistent = consistencyMap[calendarDate.year]?.[calendarDate.month]?.[d] || false;
+                    const isToday = isCurrentMonth && d === today.getDate();
                     days.push(
                       <div
                         key={'day-' + d}
-                        className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full transition text-base font-medium ${isConsistent ? 'bg-green-400 text-white shadow' : 'bg-gray-200 text-gray-400'} border border-gray-100`}
+                        className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full transition text-base font-medium ${isToday ? 'bg-green-500 text-white shadow-lg border-2 border-green-700' : isConsistent ? 'bg-green-400 text-white shadow' : 'bg-gray-200 text-gray-400'} border border-gray-100`}
                         style={{ minWidth: '2rem', minHeight: '2rem' }}
                       >
                         {d}
