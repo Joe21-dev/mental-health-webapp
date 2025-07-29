@@ -208,86 +208,98 @@ export default function Therapists() {
   // Delete doctor handler
   async function handleDeleteDoctor(id) {
 	if (!window.confirm('Are you sure you want to delete this doctor?')) return;
-	try {
-	  const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
-		method: 'DELETE',
-	  });
-	  if (!res.ok) throw new Error('Failed to delete doctor');
-	  // Remove doctor from state immediately for instant UI feedback
+  try {
+	const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
+	  method: 'DELETE',
+	});
+	if (res.status === 404) {
+	  // Therapist not found, remove from UI anyway
 	  setDoctors(prev => prev.filter(d => d._id !== id));
-	  // If deleted doctor was booked, clear booking and tracker
 	  if (bookedDoctorId === id) {
 		setBookedDoctorId(null);
 		setTherapyTracker(null);
 		sessionStorage.removeItem('therapyTracker');
 	  }
-	} catch (err) {
-	  alert('Failed to delete doctor. Please try again.');
+	  alert('Doctor not found on server. Removed from your list.');
+	  return;
 	}
+	if (!res.ok) throw new Error('Failed to delete doctor');
+	setDoctors(prev => prev.filter(d => d._id !== id));
+	if (bookedDoctorId === id) {
+	  setBookedDoctorId(null);
+	  setTherapyTracker(null);
+	  sessionStorage.removeItem('therapyTracker');
+	}
+  } catch (err) {
+	alert('Failed to delete doctor. Please try again.');
+  }
   }
 
 	const Desktop = () => (
-		<div className='mb-6'>
-		  {/* Top Navigation */}
-		  <nav className="flex items-center justify-between">
-			<div className="flex items-center space-x-4">
-			  <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => navigate('/')}> {/* Home icon clickable */}
-				<Brain className="w-5 h-5 text-white" />
-			  </div>
-			  <div className="flex items-center space-x-2">
-				<button
-				  className={`bg-gray-800 text-gray-100 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:scale-105 transition-transform border border-gray-800${location.pathname === '/platform' ? ' ring-2 ring-blue-500' : ''}`}
-				  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-				  onClick={() => navigate('/platform')}
-				>
-				  <Home className="w-4 h-4" />
-				  <span>Home</span>
-				</button>
-				<button
-				  className={`px-4 py-2 text-blue-700 bg-blue-100 border border-blue-200 font-bold rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors ${location.pathname === '/platform/therapists' ? ' ring-2 ring-blue-500' : ''}`}
-				  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-				  disabled
-			  
-				>
-				  <Users className="w-4 h-4" />
-				  <span>Therapists</span>
-				</button>
-				<button
-				  className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/scheduler' ? ' ring-2 ring-blue-500' : ''}`}
-				  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-				  onClick={() => navigate('/platform/scheduler')}
-				>
-				  <BookOpen className="w-4 h-4" />
-				  <span>Scheduler</span>
-				</button>
-				<button
-				  className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/chat' ? ' ring-2 ring-blue-500' : ''}`}
-				  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-				  onClick={() => navigate('/platform/chat')}
-				>
-				  <MessageCircle className="w-4 h-4" />
-				  <span>Health-Chat.ai</span>
-				</button>
-				<button
-				  className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${location.pathname === '/platform/resources' ? ' ring-2 ring-blue-500' : ''}`}
-				  style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-				  onClick={() => navigate('/platform/resources')}
-				>
-				  <Shield className="w-4 h-4" />
-				  <span>Resources</span>
-				</button>
-			  </div>
-			</div>
-			<div className="flex items-center space-x-4">
-			  <div className="relative">
-				<Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-				<input 
-				  type="text" 
-				  placeholder="Search..." 
-				  className="pl-10 pr-4 py-2 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-				/>
-			  </div>
-			 {/* Avatar dropdown */}
+  <div className='mb-6'>
+	{/* Top Navigation */}
+	<nav className="flex items-center justify-between">
+	  <div className="flex items-center space-x-4">
+		<div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => navigate('/')}> {/* Home icon clickable */}
+		  <Brain className="w-5 h-5 text-white" />
+		</div>
+		<div className="flex items-center space-x-2">
+		  <button
+			className={`bg-gray-800 text-gray-100 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:scale-105 transition-transform border border-gray-800${window.location.pathname === '/platform' ? ' ring-2 ring-blue-500' : ''}`}
+			style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+			onClick={() => navigate('/platform')}
+			disabled={window.location.pathname === '/platform'}
+		  >
+			<Home className="w-4 h-4" />
+			<span>Home</span>
+		  </button>
+		  <button
+			className={`px-4 py-2 text-blue-700 bg-blue-100 border border-blue-200 font-bold rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors${window.location.pathname === '/platform/therapists' ? ' ring-2 ring-blue-500' : ''}`}
+			style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+			disabled={window.location.pathname === '/platform/therapists'}
+		  >
+			<Users className="w-4 h-4" />
+			<span>Therapists</span>
+		  </button>
+		  <button
+			className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${window.location.pathname === '/platform/scheduler' ? ' ring-2 ring-blue-500' : ''}`}
+			style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+			onClick={() => navigate('/platform/scheduler')}
+			disabled={window.location.pathname === '/platform/scheduler'}
+		  >
+			<BookOpen className="w-4 h-4" />
+			<span>Scheduler</span>
+		  </button>
+		  <button
+			className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${window.location.pathname === '/platform/chat' ? ' ring-2 ring-blue-500' : ''}`}
+			style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+			onClick={() => navigate('/platform/chat')}
+			disabled={window.location.pathname === '/platform/chat'}
+		  >
+			<MessageCircle className="w-4 h-4" />
+			<span>Health-Chat.ai</span>
+		  </button>
+		  <button
+			className={`bg-gray-100 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-gray-800 hover:text-gray-100 transition-colors border border-gray-200${window.location.pathname === '/platform/resources' ? ' ring-2 ring-blue-500' : ''}`}
+			style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+			onClick={() => navigate('/platform/resources')}
+			disabled={window.location.pathname === '/platform/resources'}
+		  >
+			<Shield className="w-4 h-4" />
+			<span>Resources</span>
+		  </button>
+		</div>
+	  </div>
+	  <div className="flex items-center space-x-4">
+		<div className="relative">
+		  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+		  <input 
+			type="text" 
+			placeholder="Search..." 
+			className="pl-10 pr-4 py-2 bg-white rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+		  />
+		</div>
+		{/* Avatar dropdown */}
 		<div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
 		  <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
 		  {showAvatarDropdown && (
@@ -308,11 +320,10 @@ export default function Therapists() {
 			  >Logout</button>
 			</div>
 		  )}
-		  </div>
-			  
-			</div>
-		  </nav>
-		  </div>
+		</div>
+	  </div>
+	</nav>
+  </div>
 	)
 
 	return (
