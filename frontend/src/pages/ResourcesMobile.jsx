@@ -25,6 +25,7 @@ const ResourcesMobile = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('You require admin priviledges to add a resource');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [uploadForm, setUploadForm] = useState({
@@ -534,10 +535,10 @@ const ResourcesMobile = () => {
     if (passwordInput === 'root') {
       setShowPasswordModal(false);
       setShowUploadModal(true);
-    } else {
-      setShowPasswordModal(false);
-      setUploadError('You require admin priviledges to add a resource');
-    }
+    } else  {
+      setShowPasswordModal(true);
+      setPasswordError('Wrong Password!!! Contact Admin');
+    } 
   };
 
   const handleShowUploadModal = () => {
@@ -654,6 +655,7 @@ const ResourcesMobile = () => {
           <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()} onSubmit={handlePasswordSubmit}>
             <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowPasswordModal(false)} aria-label="Close"><X size={24} /></button>
             <h2 className="text-xl font-bold mb-2 text-blue-700">Admin Password</h2>
+            {passwordError && <div className="mb-4 text-red-500 text-sm">{passwordError}</div>}
             <input type="password" name="password" placeholder="Enter password" required className="border rounded-lg px-3 py-2" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} autoFocus />
             <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold mt-2">Continue</button>
           </form>

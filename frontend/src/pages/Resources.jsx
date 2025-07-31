@@ -495,7 +495,7 @@ const SongsCard = () => (
                 {resourceData.videos.map((video, idx) => {
                   if (!video || typeof video !== 'object') return null;
                   return (
-                    <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-orange-100${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-50' : ''}`} onClick={() => { setActiveResource(video); setShowList(null); }}>
+                    <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-orange-100${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-50' : ''}`} onClick={() => { setActiveResource({ ...video, type: 'video' }); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-orange-700">{video.title}</div>
                         <div className="text-xs text-gray-500">{video.speaker} • {video.duration}</div>

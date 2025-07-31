@@ -21,167 +21,167 @@ export default function TherapistsMobile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch therapists');
-        return res.json();
-      })
-      .then(data => {
-        setDoctors(data);
-        // Find if any doctor is booked by this user
-        const booked = data.find(d => d.bookedBy === userId);
-        setBookedDoctorId(booked ? booked._id : null);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Could not fetch therapists. Please check your connection or try again later.');
-        setLoading(false);
-      });
+	setLoading(true);
+	setError(null);
+	fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`)
+	  .then(res => {
+		if (!res.ok) throw new Error('Failed to fetch therapists');
+		return res.json();
+	  })
+	  .then(data => {
+		setDoctors(data);
+		// Find if any doctor is booked by this user
+		const booked = data.find(d => d.bookedBy === userId);
+		setBookedDoctorId(booked ? booked._id : null);
+		setLoading(false);
+	  })
+	  .catch(err => {
+		setError('Could not fetch therapists. Please check your connection or try again later.');
+		setLoading(false);
+	  });
   }, [userId]);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('therapyTrackerMobile');
-    if (stored) {
-      setTherapyTracker(JSON.parse(stored));
-    }
+	const stored = sessionStorage.getItem('therapyTrackerMobile');
+	if (stored) {
+	  setTherapyTracker(JSON.parse(stored));
+	}
   }, []);
   useEffect(() => {
-    if (therapyTracker) {
-      sessionStorage.setItem('therapyTrackerMobile', JSON.stringify(therapyTracker));
-    } else {
-      sessionStorage.removeItem('therapyTrackerMobile');
-    }
+	if (therapyTracker) {
+	  sessionStorage.setItem('therapyTrackerMobile', JSON.stringify(therapyTracker));
+	} else {
+	  sessionStorage.removeItem('therapyTrackerMobile');
+	}
   }, [therapyTracker]);
 
   useEffect(() => {
-    if (showInfo) {
-      const timer = setTimeout(() => setShowInfo(false), 12000);
-      return () => clearTimeout(timer);
-    }
+	if (showInfo) {
+	  const timer = setTimeout(() => setShowInfo(false), 12000);
+	  return () => clearTimeout(timer);
+	}
   }, [showInfo]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+	const handleScroll = () => {
+	  setIsScrolled(window.scrollY > 0);
+	};
+	window.addEventListener('scroll', handleScroll);
+	return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetch(`${BACKEND_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          setUserName(data.name || '');
-          setUserEmail(data.email || '');
-          setUserId(data.id || data._id || null);
-        })
-        .catch(() => {
-          setUserName('');
-          setUserEmail('');
-          setUserId(null);
-        });
-    } else {
-      setUserName(localStorage.getItem('userName') || '');
-      setUserEmail(localStorage.getItem('userEmail') || '');
-      setUserId(localStorage.getItem('userId') || null);
-    }
+	const token = localStorage.getItem('token');
+	if (token) {
+	  fetch(`${BACKEND_URL}/api/auth/me`, {
+		headers: { Authorization: `Bearer ${token}` }
+	  })
+		.then(res => res.json())
+		.then(data => {
+		  setUserName(data.name || '');
+		  setUserEmail(data.email || '');
+		  setUserId(data.id || data._id || null);
+		})
+		.catch(() => {
+		  setUserName('');
+		  setUserEmail('');
+		  setUserId(null);
+		});
+	} else {
+	  setUserName(localStorage.getItem('userName') || '');
+	  setUserEmail(localStorage.getItem('userEmail') || '');
+	  setUserId(localStorage.getItem('userId') || null);
+	}
   }, []);
 
   function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    let color = '#';
-    for (let i = 0; i < 3; i++) {
-      const value = (hash >> (i * 8)) & 0xFF;
-      color += ('00' + value.toString(16)).slice(-2);
-    }
-    return color;
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+	  hash = str.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	let color = '#';
+	for (let i = 0; i < 3; i++) {
+	  const value = (hash >> (i * 8)) & 0xFF;
+	  color += ('00' + value.toString(16)).slice(-2);
+	}
+	return color;
   }
 
   function handleChange(e) {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-    if (name === 'condition') {
-      setUserCondition(value);
-      if (value.toLowerCase().includes('anxiety')) setRecommendedTherapy('Cognitive Behavioral Therapy');
-      else if (value.toLowerCase().includes('depression')) setRecommendedTherapy('Behavioral Activation');
-      else if (value.toLowerCase().includes('stress')) setRecommendedTherapy('Mindfulness Therapy');
-      else setRecommendedTherapy('General Therapy');
-    }
+	const { name, value } = e.target;
+	setForm(f => ({ ...f, [name]: value }));
+	if (name === 'condition') {
+	  setUserCondition(value);
+	  if (value.toLowerCase().includes('anxiety')) setRecommendedTherapy('Cognitive Behavioral Therapy');
+	  else if (value.toLowerCase().includes('depression')) setRecommendedTherapy('Behavioral Activation');
+	  else if (value.toLowerCase().includes('stress')) setRecommendedTherapy('Mindfulness Therapy');
+	  else setRecommendedTherapy('General Therapy');
+	}
   }
 
   function handleSubmit(e) {
-    e.preventDefault();
-    if (!form.name.trim() || !form.specialty.trim()) return;
-    fetch(`${BACKEND_URL}/api/therapists`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        specialty: form.specialty,
-      }),
-    })
-      .then(() => fetch(`${BACKEND_URL}/api/therapists`))
-      .then(res => res.json())
-      .then(data => setDoctors(data));
-    setForm({ name: '', specialty: '' });
-    setShowForm(false);
+	e.preventDefault();
+	if (!form.name.trim() || !form.specialty.trim()) return;
+	fetch(`${BACKEND_URL}/api/therapists`, {
+	  method: 'POST',
+	  headers: { 'Content-Type': 'application/json' },
+	  body: JSON.stringify({
+		name: form.name,
+		specialty: form.specialty,
+	  }),
+	})
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists`))
+	  .then(res => res.json())
+	  .then(data => setDoctors(data));
+	setForm({ name: '', specialty: '' });
+	setShowForm(false);
   }
 
   function handleBook(d) {
-    if (!userId) return toast.error('You must be logged in to book a doctor');
-    // Only allow booking if no other doctor is booked by this user or this doctor is already booked by this user
-    if (!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id) return;
-    const newBooked = !d.bookedBy;
-    const bookingInfo = newBooked ? {
-      userId,
-      name: userName,
-      day: 'Monday',
-      date: new Date().toISOString().slice(0,10),
-      description: 'Booked via button',
-      bookedAt: new Date().toISOString(),
-      condition: d.condition || userCondition,
-      therapy: d.therapy || recommendedTherapy
-    } : null;
-    fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booked: newBooked, bookingInfo })
-    })
-      .then(() => fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`))
-      .then(res => res.json())
-      .then(data => {
-        setDoctors(data);
-        // Update bookedDoctorId state
-        if (newBooked) {
-          setBookedDoctorId(d._id);
-        } else {
-          setBookedDoctorId(null);
-        }
-        if (newBooked) {
-          const bookedDoctor = data.find(doc => doc._id === d._id);
-          setTherapyTracker({
-            doctor: bookedDoctor,
-            day: bookingInfo.day,
-            date: bookingInfo.date,
-            description: bookingInfo.description,
-            streak: 1,
-            longestStreak: 1,
-            bookedAt: bookingInfo.bookedAt
-          });
-        } else {
-          setTherapyTracker(null);
-        }
-      });
+	if (!userId) return toast.error('You must be logged in to book a doctor');
+	// Only allow booking if no other doctor is booked by this user or this doctor is already booked by this user
+	if (!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id) return;
+	const newBooked = !d.bookedBy;
+	const bookingInfo = newBooked ? {
+	  userId,
+	  name: userName,
+	  day: 'Monday',
+	  date: new Date().toISOString().slice(0,10),
+	  description: 'Booked via button',
+	  bookedAt: new Date().toISOString(),
+	  condition: d.condition || userCondition,
+	  therapy: d.therapy || recommendedTherapy
+	} : null;
+	fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
+	  method: 'PUT',
+	  headers: { 'Content-Type': 'application/json' },
+	  body: JSON.stringify({ booked: newBooked, bookingInfo })
+	})
+	  .then(() => fetch(`${BACKEND_URL}/api/therapists?seededOnly=true`))
+	  .then(res => res.json())
+	  .then(data => {
+		setDoctors(data);
+		// Update bookedDoctorId state
+		if (newBooked) {
+		  setBookedDoctorId(d._id);
+		} else {
+		  setBookedDoctorId(null);
+		}
+		if (newBooked) {
+		  const bookedDoctor = data.find(doc => doc._id === d._id);
+		  setTherapyTracker({
+			doctor: bookedDoctor,
+			day: bookingInfo.day,
+			date: bookingInfo.date,
+			description: bookingInfo.description,
+			streak: 1,
+			longestStreak: 1,
+			bookedAt: bookingInfo.bookedAt
+		  });
+		} else {
+		  setTherapyTracker(null);
+		}
+	  });
   }
 
 	const [showForm, setShowForm] = useState(false);
@@ -192,13 +192,17 @@ export default function TherapistsMobile() {
 
   // Delete doctor handler
   const handleDeleteDoctor = async (id) => {
+	const doctor = doctors.find(d => d._id === id);
+	if (!doctor || doctor.seeded) {
+	  toast.error('Cannot delete default seeded doctor.');
+	  return;
+	}
 	if (!window.confirm('Are you sure you want to delete this doctor?')) return;
 	try {
 	  const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
 		method: 'DELETE',
 	  });
 	  if (!res.ok) throw new Error('Failed to delete doctor');
-	  // Remove doctor from state immediately for instant UI feedback
 	  setDoctors(prev => prev.filter(d => d._id !== id));
 	  if (bookedDoctorId === id) {
 		setBookedDoctorId(null);
@@ -304,10 +308,9 @@ export default function TherapistsMobile() {
 		  <div className="text-gray-500">No doctors available.</div>
 		) : (
 		  <ul className="space-y-4">
-			{doctors.map(d => (
+	  {doctors.map(d => (
 		<li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
 		  <div className="flex items-center space-x-3">
-			{/* Wrap avatar and info in a parent div for valid JSX */}
 			<div className="flex items-center">
 			  <div
 				className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
@@ -322,7 +325,6 @@ export default function TherapistsMobile() {
 				{d.bookedBy === userId && d.bookingInfo && (
 				  <div className="text-xs text-green-600 mt-1">Booked by you on {d.bookingInfo.date}</div>
 				)}
-				{/* Show createdAt and approvedAt if present */}
 				<div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
 				{d.approvedAt && (
 				  <div className="text-xs text-blue-500">Approved: {new Date(d.approvedAt).toLocaleString()}</div>
@@ -338,17 +340,19 @@ export default function TherapistsMobile() {
 			>
 			  {d.bookedBy === userId ? 'Unbook' : 'Book'}
 			</button>
-			<button
-			  className="ml-1 p-1 rounded-full hover:bg-gray-200"
-			  title="Delete doctor"
-			  onClick={() => handleDeleteDoctor(d._id)}
-			  aria-label="Delete doctor"
-			>
-			  <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-			</button>
+			{!d.seeded && (
+			  <button
+				className="ml-1 p-1 rounded-full hover:bg-gray-200"
+				title="Delete doctor"
+				onClick={() => handleDeleteDoctor(d._id)}
+				aria-label="Delete doctor"
+			  >
+				<X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+			  </button>
+			)}
 		  </div>
 		</li>
-			))}
+	  ))}
 		  </ul>
 		)}
 
