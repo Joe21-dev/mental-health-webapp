@@ -155,7 +155,7 @@ const SongsCard = () => (
         {resourceData.songs.slice(0, 4).map((song, idx) => {
           if (!song || typeof song !== 'object') return null;
           return (
-            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(song)}>
+            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...song, type: 'song' })}>
               <div>
                 <div className="font-semibold text-blue-100">{song.title}</div>
                 <div className="text-xs text-blue-200">{song.artist} • {song.duration} • {song.type}</div>
@@ -359,7 +359,7 @@ const SongsCard = () => (
           {resourceData.podcasts.slice(0, 4).map((podcast, idx) => {
             if (!podcast || typeof podcast !== 'object') return null;
             return (
-              <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-200/60' : ''} hover:bg-purple-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(podcast)}>
+              <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-200/60' : ''} hover:bg-purple-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...podcast, type: 'podcast' })}>
                 <div>
                   <div className="font-semibold text-purple-100">{podcast.title}</div>
                   <div className="text-xs text-purple-200">{podcast.host} • {podcast.duration} • {podcast.type}</div>
@@ -418,7 +418,7 @@ const SongsCard = () => (
           {resourceData.ebooks.slice(0, 4).map((book, idx) => {
             if (!book || typeof book !== 'object') return null;
             return (
-              <li key={idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-200/60' : ''} hover:bg-green-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(book)}>
+              <li key={idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-200/60' : ''} hover:bg-green-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...book, type: 'ebook' })}>
                 <div>
                   <div className="font-semibold text-green-100">{book.title}</div>
                   <div className="text-xs text-green-200">{book.author}</div>
@@ -472,7 +472,7 @@ const SongsCard = () => (
           {resourceData.videos.slice(0, 4).map((video, idx) => {
             if (!video || typeof video !== 'object') return null;
             return (
-              <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-200/60' : ''} hover:bg-orange-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource(video)}>
+              <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-200/60' : ''} hover:bg-orange-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...video, type: 'video' })}>
                 <div>
                   <div className="font-semibold text-orange-100">{video.title}</div>
                   <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>

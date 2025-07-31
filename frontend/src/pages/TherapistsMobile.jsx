@@ -309,49 +309,49 @@ export default function TherapistsMobile() {
 		) : (
 		  <ul className="space-y-4">
 	  {doctors.map(d => (
-		<li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
-		  <div className="flex items-center space-x-3">
-			<div className="flex items-center">
-			  <div
-				className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
-				style={{ background: stringToColor(d.name) }}
-			  >
-				{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
-			  </div>
-			  <div className="ml-3">
-				<div className="font-semibold">{d.name}</div>
-				<div className="text-xs text-gray-600">{d.specialty || ''}</div>
-				<div className="text-xs text-gray-400">{d.status || ''}</div>
-				{d.bookedBy === userId && d.bookingInfo && (
-				  <div className="text-xs text-green-600 mt-1">Booked by you on {d.bookingInfo.date}</div>
-				)}
-				<div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
-				{d.approvedAt && (
-				  <div className="text-xs text-blue-500">Approved: {new Date(d.approvedAt).toLocaleString()}</div>
-				)}
-			  </div>
-			</div>
+	<li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
+	  <div className="flex items-center space-x-3">
+		<div className="flex items-center">
+		  <div
+			className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
+			style={{ background: stringToColor(d.name) }}
+		  >
+			{d.name ? d.name.trim()[0].toUpperCase() : 'D'}
 		  </div>
-		  <div className="flex items-center gap-2">
-			<button
-			  className={`px-2 py-1 rounded text-xs ${d.bookedBy === userId ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-			  onClick={() => handleBook(d)}
-			  disabled={(!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id)}
-			>
-			  {d.bookedBy === userId ? 'Unbook' : 'Book'}
-			</button>
-			{!d.seeded && (
-			  <button
-				className="ml-1 p-1 rounded-full hover:bg-gray-200"
-				title="Delete doctor"
-				onClick={() => handleDeleteDoctor(d._id)}
-				aria-label="Delete doctor"
-			  >
-				<X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-			  </button>
+		  <div className="ml-3">
+			<div className="font-semibold">{d.name}</div>
+			<div className="text-xs text-gray-600">{d.specialty || ''}</div>
+			<div className="text-xs text-gray-400">{d.status || ''}</div>
+			{d.bookedBy === userId && d.bookingInfo && (
+			  <div className="text-xs text-green-600 mt-1">Booked by you on {d.bookingInfo.date}</div>
+			)}
+			<div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
+			{d.approvedAt && (
+			  <div className="text-xs text-blue-500">Approved: {new Date(d.approvedAt).toLocaleString()}</div>
 			)}
 		  </div>
-		</li>
+		</div>
+	  </div>
+	  <div className="flex items-center gap-2">
+		<button
+		  className={`px-2 py-1 rounded text-xs ${d.bookedBy === userId ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+		  onClick={() => handleBook(d)}
+		  disabled={(!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id)}
+		>
+		  {d.bookedBy === userId ? 'Unbook' : 'Book'}
+		</button>
+		{!d.seeded && (
+		  <button
+			className="ml-1 p-1 rounded-full hover:bg-gray-200"
+			title="Delete doctor"
+			onClick={e => { e.stopPropagation(); handleDeleteDoctor(d._id); }}
+			aria-label="Delete doctor"
+		  >
+			<X className="w-4 h-4 text-gray-500 hover:text-red-600" />
+		  </button>
+		)}
+	  </div>
+	</li>
 	  ))}
 		  </ul>
 		)}
