@@ -162,7 +162,7 @@ const SongsCard = () => (
               </div>
               <div className="flex items-center gap-2">
                 {song.url ? (
-                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(song); }}>
+                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...song, type: 'song' }); }}>
                     <Play size={16} />
                   </button>
                 ) : null}
@@ -182,7 +182,7 @@ const SongsCard = () => (
               {resourceData.songs.map((song, idx) => {
                 if (!song || typeof song !== 'object') return null;
                 return (
-                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { setActiveResource(song); setShowList(null); }}>
+                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { setActiveResource({ ...song, type: 'song' }); setShowList(null); }}>
                     <div>
                       <div className="font-semibold text-blue-700">{song.title}</div>
                       <div className="text-xs text-gray-500">{song.artist} • {song.duration} • {song.type}</div>
@@ -366,7 +366,7 @@ const SongsCard = () => (
                 </div>
                 <div className="flex items-center gap-2">
                   {podcast.url ? (
-                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource(podcast); }}>
+                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...podcast, type: 'podcast' }); }}>
                       <Play size={16} />
                     </button>
                   ) : null}
@@ -386,7 +386,7 @@ const SongsCard = () => (
                 {resourceData.podcasts.map((podcast, idx) => {
                   if (!podcast || typeof podcast !== 'object') return null;
                   return (
-                    <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-purple-100${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-50' : ''}`} onClick={() => { setActiveResource(podcast); setShowList(null); }}>
+                    <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-purple-100${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-50' : ''}`} onClick={() => { setActiveResource({ ...podcast, type: 'podcast' }); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-purple-700">{podcast.title}</div>
                         <div className="text-xs text-gray-500">{podcast.host} • {podcast.duration} • {podcast.type}</div>
@@ -441,7 +441,7 @@ const SongsCard = () => (
                 {resourceData.ebooks.map((book, idx) => {
                   if (!book || typeof book !== 'object') return null;
                   return (
-                    <li key={idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-green-100${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-50' : ''}`} onClick={() => { setActiveResource(book); setShowList(null); }}>
+                  <li key={idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-green-100${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-50' : ''}`} onClick={() => { setActiveResource({ ...book, type: 'ebook' }); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-green-700">{book.title}</div>
                         <div className="text-xs text-gray-500">{book.author}</div>
@@ -478,7 +478,7 @@ const SongsCard = () => (
                   <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+                  <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...video, type: 'video' }); }}><Play size={16} /></button>
                   <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
                 </div>
               </li>
@@ -501,7 +501,7 @@ const SongsCard = () => (
                         <div className="text-xs text-gray-500">{video.speaker} • {video.duration}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`}><Play size={16} /></button>
+                        <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...video, type: 'video' }); }}><Play size={16} /></button>
                         <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
                       </div>
                     </li>
