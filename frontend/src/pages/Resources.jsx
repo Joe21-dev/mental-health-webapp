@@ -210,6 +210,7 @@ const SongsCard = () => (
 );
 
   const ActiveCard = () => {
+
     // Defensive: check for null, undefined, or non-object activeResource
     if (!activeResource || typeof activeResource !== 'object') {
       return (
@@ -230,6 +231,9 @@ const SongsCard = () => (
 
     // Song or podcast
     if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
+      // Determine which list to use for navigation
+      const list = activeResource.type === 'song' ? resourceData.songs : resourceData.podcasts;
+      const idx = list.findIndex(r => r._id === activeResource._id || r.title === activeResource.title);
       return (
         <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-3xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -265,18 +269,16 @@ const SongsCard = () => (
               <button
                 className="px-4 py-2 bg-blue-400 text-white rounded-full hover:bg-blue-500 shadow transition"
                 onClick={() => {
-                  const idx = resourceData.songs.findIndex(s => s._id === activeResource._id);
-                  if (idx > 0) setActiveResource(resourceData.songs[idx - 1]);
+                  if (idx > 0) setActiveResource({ ...list[idx - 1], type: activeResource.type });
                 }}
-                disabled={!activeResource}
+                disabled={idx <= 0}
               ><SkipBack size={16} /></button>
               <button
                 className="px-4 py-2 bg-blue-400 text-white rounded-full hover:bg-blue-500 shadow transition"
                 onClick={() => {
-                  const idx = resourceData.songs.findIndex(s => s._id === activeResource._id);
-                  if (idx < resourceData.songs.length - 1) setActiveResource(resourceData.songs[idx + 1]);
+                  if (idx < list.length - 1) setActiveResource({ ...list[idx + 1], type: activeResource.type });
                 }}
-                disabled={!activeResource}
+                disabled={idx < 0 || idx >= list.length - 1}
               ><SkipForward size={16} /></button>
               {/* Delete button for active resource */}
               <button
@@ -588,9 +590,12 @@ const SongsCard = () => (
       if (/podcast/i.test(uploadForm.title)) {
         formData.append('type', 'podcast');
       }
+      // Use local upload endpoint if LOCAL_DEV is set and running on localhost
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || import.meta.env.VITE_LOCAL_DEV === 'true';
+      const uploadUrl = isLocal ? `${BACKEND_URL}/api/resources/upload-local` : `${BACKEND_URL}/api/resources/upload`;
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
-        xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
+        xhr.open('POST', uploadUrl);
         xhr.timeout = 45000; // 45 seconds max
         xhr.withCredentials = false;
         xhr.upload.onprogress = (event) => {
@@ -608,7 +613,8 @@ const SongsCard = () => (
               setUploading(false);
               return reject();
             }
-            const newResource = uploadResult.resource;
+            // Accept both {resource} and direct resource object
+            const newResource = uploadResult.resource || uploadResult;
             if (!newResource || !newResource.type) {
               setUploadError('Invalid resource returned from server');
               setUploading(false);
@@ -673,20 +679,80 @@ const SongsCard = () => (
       )}
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowUploadModal(false)}>
-          <form className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()} onSubmit={handleUploadSubmit}>
-            <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowUploadModal(false)} aria-label="Close"><X size={24} /></button>
-            <h2 className="text-xl font-bold mb-2 text-blue-700">Upload Resource</h2>
-            <input type="file" name="file" accept="audio/*,video/*,application/pdf" required className="mb-2" onChange={handleUploadChange} />
-            <input type="text" name="title" placeholder="Name (unique)" required className="border rounded-lg px-3 py-2" value={uploadForm.title} onChange={handleUploadChange} />
-            {uploadError && <div className="text-red-500 text-sm">{uploadError}</div>}
-            {uploading && (
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-200/60 via-white/80 to-blue-100/80 backdrop-blur-sm" onClick={() => setShowUploadModal(false)}>
+          <form
+            className="relative bg-white rounded-3xl shadow-2xl p-10 w-full max-w-xl flex flex-col gap-6 border border-blue-100 animate-fadeIn"
+            style={{ boxShadow: '0 8px 40px 0 rgba(37, 99, 235, 0.15)' }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleUploadSubmit}
+          >
+            <button
+              type="button"
+              className="absolute top-4 right-4 text-gray-400 hover:text-blue-700 text-3xl transition-colors"
+              onClick={() => setShowUploadModal(false)}
+              aria-label="Close"
+            >
+              <X size={28} />
+            </button>
+            <div className="flex flex-col items-center gap-2 mb-2">
+              <div className="bg-blue-100 rounded-full p-3 mb-2 shadow-md">
+                <Plus size={32} className="text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-extrabold text-blue-700 tracking-tight mb-1">Upload a New Resource</h2>
+              <p className="text-gray-500 text-sm text-center max-w-xs">Add a song, podcast, e-book, or video to the platform. Only audio, video, or PDF files are accepted. Title should be unique.</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="block text-sm font-semibold text-blue-700 mb-1">File</label>
+              <input
+                type="file"
+                name="file"
+                accept="audio/*,video/*,application/pdf"
+                required
+                className="block w-full border border-blue-200 rounded-xl px-4 py-2 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-200 file:text-blue-700 hover:file:bg-blue-300 transition"
+                onChange={handleUploadChange}
+                disabled={uploading}
+              />
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="block text-sm font-semibold text-blue-700 mb-1">Title</label>
+              <input
+                type="text"
+                name="title"
+                placeholder="Resource name (unique)"
+                required
+                className="w-full border border-blue-200 rounded-xl px-4 py-2 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-900"
+                value={uploadForm.title}
+                onChange={handleUploadChange}
+                disabled={uploading}
+              />
+            </div>
+            {uploadError && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2 text-sm font-semibold animate-shake">
+                <X size={18} className="text-red-400" />
+                {uploadError}
               </div>
             )}
-            {uploadSuccess && <div className="text-green-600 text-sm font-semibold">Upload successful!</div>}
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 font-semibold mt-2 disabled:opacity-60" disabled={uploading}>{uploading ? `Uploading... (${uploadProgress}%)` : 'Upload'}</button>
+            {uploading && (
+              <div className="w-full flex flex-col gap-2 items-center">
+                <div className="w-full bg-blue-100 rounded-full h-3 mb-1">
+                  <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-3 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+                <span className="text-blue-700 text-xs font-semibold">Uploading... {uploadProgress}%</span>
+              </div>
+            )}
+            {uploadSuccess && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-2 text-sm font-semibold animate-fadeIn">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Upload successful!
+              </div>
+            )}
+            <button
+              type="submit"
+              className="mt-2 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white rounded-full px-6 py-3 font-bold text-lg shadow-lg transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={uploading}
+            >
+              {uploading ? `Uploading... (${uploadProgress}%)` : 'Upload Resource'}
+            </button>
           </form>
         </div>
       )}

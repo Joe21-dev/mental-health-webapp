@@ -426,9 +426,12 @@ const ResourcesMobile = () => {
       const formData = new FormData();
       formData.append('file', uploadForm.file);
       formData.append('title', uploadForm.title);
+      // Use local upload endpoint if LOCAL_DEV is set and running on localhost
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || import.meta.env.VITE_LOCAL_DEV === 'true';
+      const uploadUrl = isLocal ? `${BACKEND_URL}/api/resources/upload-local` : `${BACKEND_URL}/api/resources/upload`;
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
-        xhr.open('POST', `${BACKEND_URL}/api/resources/upload`);
+        xhr.open('POST', uploadUrl);
         xhr.timeout = 45000; // 45 seconds max
         xhr.withCredentials = false;
         xhr.upload.onprogress = (event) => {
@@ -446,7 +449,8 @@ const ResourcesMobile = () => {
               setUploading(false);
               return reject();
             }
-            const newResource = uploadResult.resource;
+            // Accept both {resource} and direct resource object
+            const newResource = uploadResult.resource || uploadResult;
             if (!newResource || !newResource.type) {
               setUploadError('Invalid resource returned from server');
               setUploading(false);

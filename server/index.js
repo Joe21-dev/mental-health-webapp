@@ -1,3 +1,39 @@
+// --- LOCAL DEV: Enable local MongoDB and local file storage for offline testing ---
+// If process.env.LOCAL_DEV is set, use local MongoDB and store uploads in /resources folder
+// This block is placed after all imports and app initialization to avoid ES module import issues
+if (process.env.LOCAL_DEV === 'true') {
+  (async () => {
+    console.log('LOCAL_DEV mode enabled: Using local MongoDB and local file storage for resources.');
+
+    // Local MongoDB URI fallback
+    if (!process.env.MONGO_URL) {
+      process.env.MONGO_URL = 'mongodb://127.0.0.1:27017/mental-health-app';
+      console.log('Set MONGO_URL to local MongoDB:', process.env.MONGO_URL);
+    }
+
+    // Local resource upload endpoint (bypasses Cloudinary)
+    const { default: localMulter } = await import('multer');
+    const localUpload = localMulter({ dest: path.join(process.cwd(), 'resources') });
+
+    app.post('/api/resources/upload-local', localUpload.single('file'), async (req, res) => {
+      try {
+        const Resource = (await import('./models/Resource.js')).default;
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: 'No file uploaded' });
+        // Save resource with local file path
+        const url = `/resources/${file.filename}`;
+        const resource = new Resource({
+          ...req.body,
+          url
+        });
+        await resource.save();
+        res.status(201).json(resource);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+  })();
+}
 // All imports and dotenv.config at the top
 import dotenv from 'dotenv';
 dotenv.config();
