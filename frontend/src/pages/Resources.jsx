@@ -71,10 +71,16 @@ const Resources = () => {
       .then(data => {
         const grouped = { songs: [], podcasts: [], ebooks: [], videos: [] };
         data.forEach(r => {
-          if (r.type === 'song') grouped.songs.push(r);
-          else if (r.type === 'podcast') grouped.podcasts.push(r);
-          else if (r.type === 'ebook') grouped.ebooks.push(r);
-          else if (r.type === 'video') grouped.videos.push(r);
+          // Normalize podcast type if title contains 'podcast' (case-insensitive)
+          if ((r.type === 'podcast') || (typeof r.title === 'string' && /podcast/i.test(r.title))) {
+            grouped.podcasts.push({ ...r, type: 'podcast' });
+          } else if (r.type === 'song') {
+            grouped.songs.push(r);
+          } else if (r.type === 'ebook') {
+            grouped.ebooks.push(r);
+          } else if (r.type === 'video') {
+            grouped.videos.push(r);
+          }
         });
         setResourceData(grouped);
         setLoading(false);
@@ -162,7 +168,7 @@ const SongsCard = () => (
               </div>
               <div className="flex items-center gap-2">
                 {song.url ? (
-                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...song, type: 'song' }); }}>
+                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`} tabIndex={-1} aria-label="Play song">
                     <Play size={16} />
                   </button>
                 ) : null}
@@ -366,7 +372,7 @@ const SongsCard = () => (
                 </div>
                 <div className="flex items-center gap-2">
                   {podcast.url ? (
-                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...podcast, type: 'podcast' }); }}>
+                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`} tabIndex={-1} aria-label="Play podcast">
                       <Play size={16} />
                     </button>
                   ) : null}
@@ -424,7 +430,7 @@ const SongsCard = () => (
                   <div className="text-xs text-green-200">{book.author}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
+                  <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`} tabIndex={-1} aria-label="Read ebook"><BookOpen size={16} /></button>
                   <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(book); }} title="Delete"><X size={16} /></button>
                 </div>
               </li>
@@ -478,7 +484,7 @@ const SongsCard = () => (
                   <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...video, type: 'video' }); }}><Play size={16} /></button>
+                  <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} tabIndex={-1} aria-label="Play video"><Play size={16} /></button>
                   <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
                 </div>
               </li>

@@ -163,7 +163,7 @@ const Chat = () => {
                     }}
                   >Logout</button>
                 </div>
-          )}
+              )}
         </div>
       </header>
     );

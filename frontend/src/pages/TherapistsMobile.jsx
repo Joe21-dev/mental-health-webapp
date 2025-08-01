@@ -141,7 +141,8 @@ export default function TherapistsMobile() {
 	if (!userId) return toast.error('You must be logged in to book a doctor');
 	// Only allow booking if no other doctor is booked by this user or this doctor is already booked by this user
 	if (!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id) return;
-	const newBooked = !d.bookedBy;
+	const isBookedByUser = d.bookedBy === userId;
+	const newBooked = !isBookedByUser;
 	const bookingInfo = newBooked ? {
 	  userId,
 	  name: userName,
@@ -295,11 +296,11 @@ export default function TherapistsMobile() {
 
 	  <div className='px-4 py-4'>
 		<h2 className="font-bold text-xl mb-4">Doctors</h2>
-		<div className="flex gap-2 mb-4">
-		  <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowUserForm(true)}>
-			Add Condition
-		  </button>
-		</div>
+	<div className="flex gap-2 mb-4">
+	  <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowUserForm(true)}>
+		Add Condition
+	  </button>
+	</div>
 		{loading ? (
 		  <div className="text-center text-gray-500 py-8">Loading doctors...</div>
 		) : error ? (
