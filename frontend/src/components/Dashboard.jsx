@@ -587,7 +587,7 @@ return schedDate.getFullYear() === today.getFullYear() && schedDate.getMonth() =
 </div>
 <div className="flex items-center gap-2 mb-1">
 <Calendar className="w-5 h-5 text-green-500" />
-<span className="text-sm text-gray-700">Booked: <span className="font-semibold">{therapyTracker?.date ? new Date(therapyTracker.date).toLocaleDateString() : 'N/A'}</span></span>
+<span className="text-sm text-gray-700">Booked: <span className="font-semibold">{therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : 'N/A'}</span></span>
 </div>
 <div className="flex items-center gap-2 mb-1">
 <TrendingUp className="w-5 h-5 text-orange-500" />
@@ -638,16 +638,13 @@ return schedDate.getFullYear() === today.getFullYear() && schedDate.getMonth() =
 </div>
 {bookedTherapist ? (
 <>
-<h3 className="font-semibold mb-2">{bookedTherapist.name} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
-<div className="flex items-center space-x-3">
-<div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">
-{bookedTherapist.name.replace(/Dr\.?\s*/i, '').charAt(0).toUpperCase()}
-</div>
-<div className="flex-1">
-<p className="text-sm text-gray-600">{bookedTherapist.specialty}</p>
-<span className="bg-gray-800 text-white px-2 py-1 rounded text-xs">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
-</div>
-</div>
+ {/* Therapy Tracker Card (from Dashboard.jsx) */}
+      <div className="p-6 bg-blue-50 rounded-2xl shadow border border-blue-100">
+      <h3 className="font-bold text-blue-700 mb-2 flex items-center"><BookOpen className="w-5 h-5 mr-2 text-blue-500" /> Therapy Tracker</h3>
+      <div className="mb-1">Doctor: {therapyTracker?.doctor?.name || ''}</div>
+      <div className="mb-1">Description: {therapyTracker?.therapy || recommendedTherapy || ''}</div>
+      <div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : ''}</div>
+      </div>
 </>
 ) : (
 <>
@@ -883,16 +880,13 @@ poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format
 </div>
 {bookedTherapist ? (
 <>
-<h3 className="font-semibold mb-2">{therapyTracker?.doctor?.name} <br />{therapyTracker?.date || ''} <br />{therapyTracker?.therapy || recommendedTherapy || ''} is {bookedTherapist.status === 'approved' ? 'online' : 'pending approval'}</h3>
-<div className="flex items-center space-x-3">
-<div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold">
-{bookedTherapist.name.replace(/Dr\.?\s*/i, '').charAt(0).toUpperCase()}
-</div>
-<div className="flex-1">
-<p className="text-sm text-gray-600">{bookedTherapist.specialty}</p>
-<span className="bg-gray-800 text-white px-2 py-1 rounded text-xs">{bookedTherapist.status === 'approved' ? '10y exp' : 'Pending approval'}</span>
-</div>
-</div>
+{/* Therapy Tracker Card (from Dashboard.jsx) */}
+      <div className="p-6 bg-blue-50 rounded-2xl shadow border border-blue-100">
+      <h3 className="font-bold text-blue-700 mb-2 flex items-center"><BookOpen className="w-5 h-5 mr-2 text-blue-500" /> Therapy Tracker</h3>
+      <div className="mb-1">Doctor: {therapyTracker?.doctor?.name || ''}</div>
+      <div className="mb-1">Description: {therapyTracker?.therapy || recommendedTherapy || ''}</div>
+      <div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : ''}</div>
+      </div>
 </>
 ) : (
 <>
