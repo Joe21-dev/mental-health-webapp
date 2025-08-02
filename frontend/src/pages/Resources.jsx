@@ -47,7 +47,9 @@ const Resources = () => {
   // No need for workaround, context keeps player alive
   // For continuous playback
   const PLAYBACK_KEY = 'resourcePlayback';
-
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  // For continuous playback
   // Info alert for user guidance
   const [showInfo, setShowInfo] = useState(true);
   useEffect(() => {
@@ -140,403 +142,188 @@ const Resources = () => {
   };
 
   // Defensive check for activeResource in ActiveCard
-
-  // Card style for resource cards
-  const CARD_STYLE = {
-    minHeight: '200px',
-    borderRadius: '1.5rem',
-    background: 'linear-gradient(135deg, #3b82f6 10%, #a5b4fc 100%)',
-    overflow: 'hidden',
-  };
-
-// SongsCard definition
-const SongsCard = () => (
-  <div className="relative" style={{ minHeight: '200px', borderRadius: '1.5rem', background: 'linear-gradient(135deg, #3b82f6 10%, #a5b4fc 100%)', overflow: 'hidden' }}>
-    <div className="absolute inset-0 bg-blue-900/60 rounded-3xl"></div>
-    <div className="relative z-10 p-6 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold cursor-pointer text-blue-100" onClick={() => setShowList('songs')}>Songs</h3>
-      </div>
-      <ul className="space-y-3 flex-1 overflow-y-auto">
-        {resourceData.songs.slice(0, 4).map((song, idx) => {
-          if (!song || typeof song !== 'object') return null;
-          const isActive = activeResource && activeResource.type === 'song' && (activeResource._id === song._id || activeResource.title === song.title);
-          return (
-            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => playResource(song, resourceData.songs, idx)}>
-              <div>
-                <div className="font-semibold text-blue-100">{song.title}</div>
-                <div className="text-xs text-blue-200">{song.artist} • {song.duration} • {song.type}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                {song.url ? (
-                  <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${isActive ? ' ring-2 ring-blue-400' : ''}`} tabIndex={-1} aria-label="Play song">
-                    <Play size={16} />
-                  </button>
-                ) : null}
-                <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      {/* Modal for all songs */}
-      {showList === 'songs' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
-            <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
-            <h3 className="font-semibold text-lg mb-4 text-blue-700">All Songs</h3>
-            <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-              {resourceData.songs.map((song, idx) => {
-                if (!song || typeof song !== 'object') return null;
-                return (
-                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { playResource(song, resourceData.songs, idx); setShowList(null); }}>
-                    <div>
-                      <div className="font-semibold text-blue-700">{song.title}</div>
-                      <div className="text-xs text-gray-500">{song.artist} • {song.duration} • {song.type}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className={`p-2 bg-blue-500 text-white rounded-full ml-2${activeResource?.type === 'song' && activeResource?.title === song.title ? ' ring-2 ring-blue-400' : ''}`}><Play size={16} /></button>
-                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(song); }} title="Delete"><X size={16} /></button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
+// ActiveCard at the top
+  // Defensive check for activeResource usage
   const ActiveCard = () => {
-
-    // Defensive: check for null, undefined, or non-object activeResource
     if (!activeResource || typeof activeResource !== 'object') {
       return (
-        <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
-          <span className="text-lg font-semibold">Select a resource:</span>
+        <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+          <span className="text-lg font-semibold text-white">Select a resource:</span>
         </div>
       );
     }
-
-    // Defensive: if type is missing or falsy, show error
-    if (!('type' in activeResource) || !activeResource.type) {
+    if (!activeResource.type) {
       return (
-        <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
-          <span className="text-lg font-semibold">Invalid resource selected.</span>
+        <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+          <span className="text-lg font-semibold text-white">Invalid resource selected.</span>
         </div>
       );
     }
-
-    // Song or podcast
     if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
-      // Determine which list to use for navigation
-      const list = activeResource.type === 'song' ? resourceData.songs : resourceData.podcasts;
-      const idx = list.findIndex(r => r._id === activeResource._id || r.title === activeResource.title);
       return (
-        <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
-          <div className={`absolute inset-0 rounded-3xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
-          <div className="relative z-10 w-full flex flex-col items-center">
-            <h3 className="mb-4 text-2xl font-bold text-white drop-shadow-lg">Now Playing: {activeResource.title}</h3>
-            <div className="flex items-center gap-4 mb-4">
-              <img src={activeResource.type === 'song' ? cardImages.songs : cardImages.podcasts} alt="cover" className="w-20 h-20 rounded-xl shadow-lg object-cover" />
-              <div>
-                <div className="text-lg font-semibold text-white">{activeResource.type === 'song' ? activeResource.artist : activeResource.host}</div>
-                <div className="text-sm text-gray-200">{activeResource.duration}</div>
-              </div>
-            </div>
+        <div className="w-full mx-auto  mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '220px', backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+          <div className={`absolute inset-0  rounded-2xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
+          <div className="relative z-10  w-full flex flex-col items-center">
+            <h3 className="mb-2 mt-3 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
+            <div className="text-center text-gray-200 mb-2">{activeResource.type === 'song' ? activeResource.artist : activeResource.host}</div>
             <audio
               ref={audioRef}
               controls
               autoPlay={isPlaying}
               src={activeResource.url}
-              className="w-full max-w-lg mb-4 bg-gray-900 rounded-xl shadow-lg border border-blue-400"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
+              className="w-60 mb-2"
+              onPlay={() => {
+                setIsPlaying(true);
+                // Save playback state
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: true
+                }));
+              }}
+              onPause={() => {
+                setIsPlaying(false);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: false
+                }));
+              }}
+              onTimeUpdate={() => {
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: audioRef.current?.currentTime || 0,
+                  playing: !audioRef.current?.paused
+                }));
+              }}
             >
               Your browser does not support the audio element.
             </audio>
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow transition"
-                onClick={() => setIsPlaying(prev => !prev)}
-              >{isPlaying ? 'Pause' : 'Play'}</button>
-              <button
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 shadow transition"
-                onClick={() => setActiveResource(null)}
-              >Close Player</button>
-              <button
-                className="px-4 py-2 bg-blue-400 text-white rounded-full hover:bg-blue-500 shadow transition"
-                onClick={() => {
-                  if (idx > 0) setActiveResource({ ...list[idx - 1], type: activeResource.type });
-                }}
-                disabled={idx <= 0}
-              ><SkipBack size={16} /></button>
-              <button
-                className="px-4 py-2 bg-blue-400 text-white rounded-full hover:bg-blue-500 shadow transition"
-                onClick={() => {
-                  if (idx < list.length - 1) setActiveResource({ ...list[idx + 1], type: activeResource.type });
-                }}
-                disabled={idx < 0 || idx >= list.length - 1}
-              ><SkipForward size={16} /></button>
-              {/* Delete button for active resource */}
-              <button
-                className="px-2 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow transition ml-2"
-                onClick={() => handleDeleteResource(activeResource)}
-                title="Delete this resource"
-              ><X size={16} /></button>
-            </div>
+            <button className="w-70 py-2 bg-blue-500 text-white rounded mt-2" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
         </div>
       );
     }
-
-    // Video: video player
     if (activeResource.type === 'video' && activeResource.url) {
       return (
-        <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
-          <div className="absolute inset-0 rounded-3xl bg-orange-900/60"></div>
+        <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '320px', backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+          <div className="absolute inset-0 rounded-2xl bg-orange-900/60"></div>
           <div className="relative z-10 w-full flex flex-col items-center">
-            <h3 className="mb-4 text-lg font-semibold">Now Playing: {activeResource.title}</h3>
-            <video controls autoPlay src={activeResource.url} className="w-full max-w-lg mb-4" style={{maxHeight: '300px'}}></video>
-            <div className="mb-2 text-white text-sm">Speaker: {activeResource.speaker}</div>
-            <div className="flex items-center gap-2 mt-2">
-              <button className="px-4 py-2 bg-orange-400 text-white rounded-full hover:bg-orange-500 shadow transition" onClick={() => {
-                const idx = resourceData.videos.findIndex(v => v._id === activeResource._id);
-                if (idx > 0) setActiveResource(resourceData.videos[idx - 1]);
-              }}><SkipBack size={16} /></button>
-              <button className="px-4 py-2 bg-orange-400 text-white rounded-full hover:bg-orange-500 shadow transition" onClick={() => {
-                const idx = resourceData.videos.findIndex(v => v._id === activeResource._id);
-                if (idx < resourceData.videos.length - 1) setActiveResource(resourceData.videos[idx + 1]);
-              }}><SkipForward size={16} /></button>
-            </div>
+            <h3 className="mb-2 mt-6 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
+            <video
+              controls
+              autoPlay={isPlaying}
+              src={activeResource.url}
+              className="w-75 mb-2 rounded-xl"
+              style={{maxHeight: '180px'}} 
+              ref={el => {
+                if (el && localStorage.getItem(PLAYBACK_KEY)) {
+                  try {
+                    const { time, playing } = JSON.parse(localStorage.getItem(PLAYBACK_KEY));
+                    el.currentTime = time || 0;
+                    if (playing) setTimeout(() => el.play(), 200);
+                  } catch {}
+                }
+              }}
+              onPlay={e => {
+                setIsPlaying(true);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: true
+                }));
+              }}
+              onPause={e => {
+                setIsPlaying(false);
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: false
+                }));
+              }}
+              onTimeUpdate={e => {
+                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
+                  time: e.target.currentTime,
+                  playing: !e.target.paused
+                }));
+              }}
+            ></video>
+            <div className="text-center text-gray-200 mb-1">Speaker: {activeResource.speaker}</div>
+            <button className="w-70 py-2 bg-orange-500 text-white rounded mt-2 mb-4" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
         </div>
       );
     }
-
-    // E-book: PDF modal
     if (activeResource.type === 'ebook' && activeResource.url) {
       return (
-        <div className="relative p-6 overflow-hidden text-white bg-black rounded-3xl flex flex-col items-center justify-center" style={{backgroundImage: `url(${cardImages.ebooks})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
-          <div className="absolute inset-0 rounded-3xl bg-green-900/60"></div>
+        <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '180px', backgroundImage: `url(${cardImages.ebooks})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+          <div className="absolute inset-0 rounded-2xl bg-green-900/60"></div>
           <div className="relative z-10 w-full flex flex-col items-center">
-            <h3 className="mb-4 text-lg font-semibold">E-book: {activeResource.title}</h3>
-            <button className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600" onClick={() => setShowPdfModal(true)}>Read PDF</button>
-            <div className="mb-2 text-white text-sm">Author: {activeResource.author}</div>
-            <div className="flex items-center gap-2 mt-2">
-              <button className="px-4 py-2 bg-green-400 text-white rounded-full hover:bg-green-500 shadow transition" onClick={() => {
-                const idx = resourceData.ebooks.findIndex(e => e._id === activeResource._id);
-                if (idx > 0) setActiveResource(resourceData.ebooks[idx - 1]);
-              }}><SkipBack size={16} /></button>
-              <button className="px-4 py-2 bg-green-400 text-white rounded-full hover:bg-green-500 shadow transition" onClick={() => {
-                const idx = resourceData.ebooks.findIndex(e => e._id === activeResource._id);
-                if (idx < resourceData.ebooks.length - 1) setActiveResource(resourceData.ebooks[idx + 1]);
-              }}><SkipForward size={16} /></button>
-            </div>
-          </div>
-          {showPdfModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowPdfModal(false)}>
-              <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-2xl relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
-                <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowPdfModal(false)} aria-label="Close"><X size={24} /></button>
-                <iframe src={activeResource.url} title="E-book PDF" width="100%" height="600px" style={{border:0}}></iframe>
+            <h3 className="mb-2 text-lg font-bold text-white text-center">E-book: {activeResource.title}</h3>
+            <div className="text-center text-gray-200 mb-2">Author: {activeResource.author}</div>
+            <button className="w-70 py-2 bg-green-500 text-white rounded mt-2" onClick={() => setShowPdfModal(true)}>Read PDF</button>
+            {showPdfModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowPdfModal(false)}>
+                <div className="bg-white rounded-2xl shadow-xl p-2 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
+                  <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowPdfModal(false)} aria-label="Close"><X size={20} /></button>
+                  <iframe src={activeResource.url.startsWith('/resources/') ? `${window.location.origin}${activeResource.url}` : activeResource.url} title="E-book PDF" width="100%" height="120px" style={{border:0}}></iframe>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       );
     }
-
     // Fallback for unknown resource type
     return (
-      <div className="relative p-6 overflow-hidden text-white bg-gradient-to-tl from-black to-gray-500 rounded-3xl flex items-center justify-center min-h-[400px]">
-        <span className="text-lg font-semibold">Unknown resource type.</span>
+      <div className="w-full mx-auto mt-2 mb-4 bg-gradient-to-br from-black to-gray-500 rounded-2xl flex items-center justify-center min-h-[120px] max-w-md" style={{height: '140px'}}>
+        <span className="text-lg font-semibold text-white">Unknown resource type.</span>
       </div>
     );
   };
-  
 
-  const PodcastsCard = () => (
-    <div className="relative" style={CARD_STYLE}>
-      <div className="absolute inset-0 bg-purple-900/60 rounded-3xl"></div>
-      <div className="relative z-10 p-6 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold cursor-pointer text-purple-100" onClick={() => setShowList('podcasts')}>Podcasts</h3>
+  // ResourceCard: show scrollable modal of all resources when title is clicked, add chevron icon to indicate clickable
+  const ResourceCard = ({ type, title, color, items, icon }) => {
+    return (
+      <div className={`rounded-2xl shadow-lg overflow-hidden mb-2`} style={{backgroundImage: `url(${cardImages[type]})`, backgroundSize: 'cover', backgroundPosition: 'center', minHeight: '140px', maxHeight: '180px'}}>
+        <div className={`p-4 bg-${color}-900/70 rounded-2xl h-full flex flex-col justify-between`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowList(type)}>
+              <h3 className={`font-semibold text-${color}-100 text-lg`}>{title}</h3>
+              <ChevronDown size={18} className={`text-${color}-200`} />
+            </div>
+            {icon}
+          </div>
         </div>
-        <ul className="space-y-3 flex-1 overflow-y-auto">
-          {/* Show any resource with 'podcast' in title (case-insensitive) or type === 'podcast' */}
-          {Object.values(resourceData).flat().filter(r => r && typeof r === 'object' && (r.type === 'podcast' || (typeof r.title === 'string' && /podcast/i.test(r.title)))).slice(0, 4).map((podcast, idx, arr) => {
-            const isActive = activeResource && activeResource.type === 'podcast' && (activeResource._id === podcast._id || activeResource.title === podcast.title);
-            return (
-              <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-purple-200/60' : ''} hover:bg-purple-100/40 transition cursor-pointer text-white`} onClick={() => playResource({ ...podcast, type: 'podcast' }, arr, idx)}>
-                <div>
-                  <div className="font-semibold text-purple-100">{podcast.title}</div>
-                  <div className="text-xs text-purple-200">{podcast.host || podcast.artist || podcast.speaker} • {podcast.duration} • podcast</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {podcast.url ? (
-                    <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${isActive ? ' ring-2 ring-purple-400' : ''}`} tabIndex={-1} aria-label="Play podcast">
-                      <Play size={16} />
-                    </button>
-                  ) : null}
-                  <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(podcast); }} title="Delete"><X size={16} /></button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        {/* Modal for all podcasts */}
-        {showList === 'podcasts' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
+        {items.length === 0 && (
+          <div className="p-4 text-center text-gray-300 text-sm">No resources</div>
+        )}
+        {/* Modal for all resources of this type */}
+        {showList === type && (
+          <div className="fixed inset-0 z-50 flex px-6 items-center justify-center bg-black/70" onClick={() => setShowList(null)}>
+            <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-sm relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
               <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
-              <h3 className="font-semibold text-lg mb-4 text-purple-700">All Podcasts</h3>
-              <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-                {Object.values(resourceData).flat().filter(r => r && typeof r === 'object' && (r.type === 'podcast' || (typeof r.title === 'string' && /podcast/i.test(r.title)))).map((podcast, idx, arr) => {
-                  return (
-                    <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-purple-100${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-50' : ''}`} onClick={() => { playResource({ ...podcast, type: 'podcast' }, arr, idx); setShowList(null); }}>
-                      <div>
-                        <div className="font-semibold text-purple-700">{podcast.title}</div>
-                        <div className="text-xs text-gray-500">{podcast.host || podcast.artist || podcast.speaker} • {podcast.duration} • podcast</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`}><Play size={16} /></button>
-                        <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(podcast); }} title="Delete"><X size={16} /></button>
-                      </div>
-                    </li>
-                  );
-                })}
+              <h3 className={`font-semibold text-lg mb-4 text-${color}-700`}>All {title}</h3>
+              <ul className="space-y-2 overflow-y-auto" style={{maxHeight:'60vh'}}>
+                {items.map((item, idx) => (
+                  <li key={item._id || item.url || idx} className={`flex items-center justify-between p-2 rounded-xl bg-${color}-50 text-${color}-700 cursor-pointer`} onClick={() => { setActiveResource(item); setShowList(null); }}>
+                    <div>
+                      <div className={`font-semibold text-${color}-700`}>{item.title}</div>
+                      <div className="text-xs text-gray-500">{type === 'songs' ? item.artist : type === 'podcasts' ? item.host : type === 'ebooks' ? item.author : item.speaker}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className={`p-2 bg-${color}-500 text-white rounded-full ml-2`}>
+                        {type === 'ebooks' ? <BookOpen size={16} /> : <Play size={16} />}
+                      </button>
+                      <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(item); }} title="Delete"><X size={16} /></button>
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
         )}
       </div>
-    </div>
-  );
+      
+    );
 
-  // EbooksCard definition (single, valid, and closed)
-  const EbooksCard = () => (
-    <div className="relative" style={CARD_STYLE}>
-      <div className="absolute inset-0 bg-green-900/60 rounded-3xl"></div>
-      <div className="relative z-10 p-6 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold cursor-pointer text-green-100" onClick={() => setShowList('ebooks')}>E-books</h3>
-        </div>
-        <ul className="space-y-3 flex-1 overflow-y-auto">
-          {resourceData.ebooks.slice(0, 4).map((book, idx) => {
-            if (!book || typeof book !== 'object') return null;
-            const isActive = activeResource && activeResource.type === 'ebook' && (activeResource._id === book._id || activeResource.title === book.title);
-            return (
-              <li key={idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-green-200/60' : ''} hover:bg-green-100/40 transition cursor-pointer text-white`} onClick={() => playResource(book, resourceData.ebooks, idx)}>
-                <div>
-                  <div className="font-semibold text-green-100">{book.title}</div>
-                  <div className="text-xs text-green-200">{book.author}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className={`p-2 bg-green-500 text-white rounded-full ml-2${isActive ? ' ring-2 ring-green-400' : ''}`} tabIndex={-1} aria-label="Read ebook"><BookOpen size={16} /></button>
-                  <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(book); }} title="Delete"><X size={16} /></button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        {/* Modal for all ebooks */}
-        {showList === 'ebooks' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
-              <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
-              <h3 className="font-semibold text-lg mb-4 text-green-700">All E-books</h3>
-              <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-                {resourceData.ebooks.map((book, idx) => {
-                  if (!book || typeof book !== 'object') return null;
-                  return (
-                  <li key={idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-green-100${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-50' : ''}`} onClick={() => { playResource(book, resourceData.ebooks, idx); setShowList(null); }}>
-                      <div>
-                        <div className="font-semibold text-green-700">{book.title}</div>
-                        <div className="text-xs text-gray-500">{book.author}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className={`p-2 bg-green-500 text-white rounded-full ml-2${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' ring-2 ring-green-400' : ''}`}><BookOpen size={16} /></button>
-                        <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(book); }} title="Delete"><X size={16} /></button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  };
 
-  const VideosCard = () => (
-    <div className="relative" style={CARD_STYLE}>
-      <div className="absolute inset-0 bg-orange-900/60 rounded-3xl"></div>
-      <div className="relative z-10 p-6 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold cursor-pointer text-orange-100" onClick={() => setShowList('videos')}>Motivational Videos</h3>
-        </div>
-        <ul className="space-y-3 flex-1 overflow-y-auto">
-          {resourceData.videos.slice(0, 4).map((video, idx) => {
-            if (!video || typeof video !== 'object') return null;
-            const isActive = activeResource && activeResource.type === 'video' && (activeResource._id === video._id || activeResource.title === video.title);
-            return (
-              <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-orange-200/60' : ''} hover:bg-orange-100/40 transition cursor-pointer text-white`} onClick={() => playResource(video, resourceData.videos, idx)}>
-                <div>
-                  <div className="font-semibold text-orange-100">{video.title}</div>
-                  <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${isActive ? ' ring-2 ring-orange-400' : ''}`} tabIndex={-1} aria-label="Play video"><Play size={16} /></button>
-                  <button className="p-2 text-red-500 hover:text-red-700 ml-1" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        {/* Modal for all videos */}
-        {showList === 'videos' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowList(null)}>
-            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-5 relative animate-fadeIn border border-gray-100 flex flex-col" style={{maxHeight:'80vh'}} onClick={e => e.stopPropagation()}>
-              <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
-              <h3 className="font-semibold text-lg mb-4 text-orange-700">All Videos</h3>
-              <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-                {resourceData.videos.map((video, idx) => {
-                  if (!video || typeof video !== 'object') return null;
-                  return (
-                    <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-orange-100${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-50' : ''}`} onClick={() => { playResource(video, resourceData.videos, idx); setShowList(null); }}>
-                      <div>
-                        <div className="font-semibold text-orange-700">{video.title}</div>
-                        <div className="text-xs text-gray-500">{video.speaker} • {video.duration}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); playResource(video, resourceData.videos, idx); }}><Play size={16} /></button>
-                        <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const [uploadForm, setUploadForm] = useState({
-    file: null,
-    title: ''
-  });
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const handleUploadChange = (e) => {
     const { name, value, files } = e.target;
@@ -544,24 +331,6 @@ const SongsCard = () => (
       setUploadForm(f => ({ ...f, file: files[0] }));
     } else {
       setUploadForm(f => ({ ...f, [name]: value }));
-    }
-  };
-
-  // Show password modal before upload modal
-  const handleShowUploadModal = () => {
-    setPasswordInput('');
-    setShowPasswordModal(true);
-  };
-
-  // Password check logic
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (passwordInput === 'root') {
-      setShowPasswordModal(false);
-      setShowUploadModal(true);
-    } else {
-      setShowPasswordModal(false);
-      setUploadError('You require admin priviledges to add a resource');
     }
   };
 
@@ -586,9 +355,6 @@ const SongsCard = () => (
       const formData = new FormData();
       formData.append('file', uploadForm.file);
       formData.append('title', uploadForm.title);
-      if (/podcast/i.test(uploadForm.title)) {
-        formData.append('type', 'podcast');
-      }
       // Use local upload endpoint if LOCAL_DEV is set and running on localhost
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || import.meta.env.VITE_LOCAL_DEV === 'true';
       const uploadUrl = isLocal ? `${BACKEND_URL}/api/resources/upload-local` : `${BACKEND_URL}/api/resources/upload`;
@@ -652,6 +418,55 @@ const SongsCard = () => (
       setUploadError('Upload failed');
       setUploading(false);
     }
+  };
+
+  // Sync active resource across tabs/devices using localStorage
+  useEffect(() => {
+    const storedActive = localStorage.getItem('activeResource');
+    if (storedActive) {
+      try {
+        setActiveResource(JSON.parse(storedActive));
+      } catch {}
+    }
+    // Restore playback state
+    const pb = localStorage.getItem(PLAYBACK_KEY);
+    if (pb && audioRef.current) {
+      try {
+        const { time, playing } = JSON.parse(pb);
+        audioRef.current.currentTime = time || 0;
+        if (playing) {
+          setTimeout(() => audioRef.current && audioRef.current.play(), 200);
+        }
+      } catch {}
+    }
+  }, []);
+  // Save activeResource and playback state
+  useEffect(() => {
+    if (activeResource) {
+      localStorage.setItem('activeResource', JSON.stringify(activeResource));
+    } else {
+      localStorage.removeItem('activeResource');
+      localStorage.removeItem(PLAYBACK_KEY);
+    }
+  }, [activeResource]);
+
+ 
+
+  // Password check logic
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (passwordInput === 'root') {
+      setShowPasswordModal(false);
+      setShowUploadModal(true);
+    } else  {
+      setShowPasswordModal(true);
+      setPasswordError('Wrong Password!!! Contact Admin');
+    } 
+  };
+
+  const handleShowUploadModal = () => {
+    setPasswordInput('');
+    setShowPasswordModal(true);
   };
 
   return (
@@ -877,18 +692,24 @@ const SongsCard = () => (
         </div>
         {/* Right: Resource cards in 2 columns (desktop only) */}
         <div className="w-full lg:w-[60%] grid grid-cols-1 md:grid-cols-2 gap-6 p-4 pb-24 lg:px-8">
-          <div className="overflow-y-auto max-h-[65vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <SongsCard />
-          </div>
-          <div className="overflow-y-auto max-h-[65vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <PodcastsCard />
-          </div>
-          <div className="overflow-y-auto max-h-[65vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <EbooksCard />
-          </div>
-          <div className="overflow-y-auto max-h-[65vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <VideosCard />
-          </div>
+          {/* Active Card */}
+                  {/* Resource Cards */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {['songs', 'podcasts', 'ebooks', 'videos'].map(type => {
+                      const items = resourceData[type] || [];
+                      const color = type === 'songs' ? 'blue' : type === 'podcasts' ? 'purple' : type === 'ebooks' ? 'green' : 'orange';
+                      return (
+                        <ResourceCard
+                          key={type}
+                          type={type}
+                          title={type.charAt(0).toUpperCase() + type.slice(1)}
+                          color={color}
+                          items={items}
+                          icon={<Plus className={`w-6 h-6 text-${color}-200`} />}
+                        />
+                      );
+                    })}
+                  </div>
         </div>
       </div>
     </div>
