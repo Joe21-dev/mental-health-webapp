@@ -66,10 +66,16 @@ const ResourcesMobile = () => {
       .then(data => {
         const grouped = { songs: [], podcasts: [], ebooks: [], videos: [] };
         data.forEach(r => {
-          if (r.type === 'song') grouped.songs.push(r);
-          else if (r.type === 'podcast') grouped.podcasts.push(r);
-          else if (r.type === 'ebook') grouped.ebooks.push(r);
-          else if (r.type === 'video') grouped.videos.push(r);
+          // Normalize podcast type if title contains 'podcast' (case-insensitive)
+          if ((r.type === 'podcast') || (typeof r.title === 'string' && /podcast/i.test(r.title))) {
+            grouped.podcasts.push({ ...r, type: 'podcast' });
+          } else if (r.type === 'song') {
+            grouped.songs.push(r);
+          } else if (r.type === 'ebook') {
+            grouped.ebooks.push(r);
+          } else if (r.type === 'video') {
+            grouped.videos.push(r);
+          }
         });
         setResourceData(grouped);
         setLoading(false);

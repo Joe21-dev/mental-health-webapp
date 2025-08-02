@@ -42,7 +42,7 @@ const Resources = () => {
   const [showApiKeyInfo, setShowApiKeyInfo] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   // Use global player state from context
-  const { activeResource, setActiveResource, isPlaying, setIsPlaying, audioRef } = useResourcePlayer();
+  const { activeResource, setActiveResource, isPlaying, setIsPlaying, audioRef, playResource } = useResourcePlayer();
 
   // No need for workaround, context keeps player alive
   // For continuous playback
@@ -162,7 +162,7 @@ const SongsCard = () => (
           if (!song || typeof song !== 'object') return null;
           const isActive = activeResource && activeResource.type === 'song' && (activeResource._id === song._id || activeResource.title === song.title);
           return (
-            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...song, type: 'song' })}>
+            <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-blue-200/60' : ''} hover:bg-blue-100/40 transition cursor-pointer text-white`} onClick={() => playResource(song, resourceData.songs, idx)}>
               <div>
                 <div className="font-semibold text-blue-100">{song.title}</div>
                 <div className="text-xs text-blue-200">{song.artist} • {song.duration} • {song.type}</div>
@@ -189,7 +189,7 @@ const SongsCard = () => (
               {resourceData.songs.map((song, idx) => {
                 if (!song || typeof song !== 'object') return null;
                 return (
-                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { setActiveResource({ ...song, type: 'song' }); setShowList(null); }}>
+                  <li key={song._id || song.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-blue-100${activeResource?.type === 'song' && activeResource?.title === song.title ? ' bg-blue-50' : ''}`} onClick={() => { playResource(song, resourceData.songs, idx); setShowList(null); }}>
                     <div>
                       <div className="font-semibold text-blue-700">{song.title}</div>
                       <div className="text-xs text-gray-500">{song.artist} • {song.duration} • {song.type}</div>
@@ -365,14 +365,14 @@ const SongsCard = () => (
           <h3 className="font-semibold cursor-pointer text-purple-100" onClick={() => setShowList('podcasts')}>Podcasts</h3>
         </div>
         <ul className="space-y-3 flex-1 overflow-y-auto">
-          {resourceData.podcasts.slice(0, 4).map((podcast, idx) => {
-            if (!podcast || typeof podcast !== 'object') return null;
+          {/* Show any resource with 'podcast' in title (case-insensitive) or type === 'podcast' */}
+          {Object.values(resourceData).flat().filter(r => r && typeof r === 'object' && (r.type === 'podcast' || (typeof r.title === 'string' && /podcast/i.test(r.title)))).slice(0, 4).map((podcast, idx, arr) => {
             const isActive = activeResource && activeResource.type === 'podcast' && (activeResource._id === podcast._id || activeResource.title === podcast.title);
             return (
-              <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-purple-200/60' : ''} hover:bg-purple-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...podcast, type: 'podcast' })}>
+              <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-purple-200/60' : ''} hover:bg-purple-100/40 transition cursor-pointer text-white`} onClick={() => playResource({ ...podcast, type: 'podcast' }, arr, idx)}>
                 <div>
                   <div className="font-semibold text-purple-100">{podcast.title}</div>
-                  <div className="text-xs text-purple-200">{podcast.host} • {podcast.duration} • {podcast.type}</div>
+                  <div className="text-xs text-purple-200">{podcast.host || podcast.artist || podcast.speaker} • {podcast.duration} • podcast</div>
                 </div>
                 <div className="flex items-center gap-2">
                   {podcast.url ? (
@@ -393,13 +393,12 @@ const SongsCard = () => (
               <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setShowList(null)} aria-label="Close"><X size={24} /></button>
               <h3 className="font-semibold text-lg mb-4 text-purple-700">All Podcasts</h3>
               <ul className="space-y-3 overflow-y-auto" style={{maxHeight:'60vh'}}>
-                {resourceData.podcasts.map((podcast, idx) => {
-                  if (!podcast || typeof podcast !== 'object') return null;
+                {Object.values(resourceData).flat().filter(r => r && typeof r === 'object' && (r.type === 'podcast' || (typeof r.title === 'string' && /podcast/i.test(r.title)))).map((podcast, idx, arr) => {
                   return (
-                    <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-purple-100${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-50' : ''}`} onClick={() => { setActiveResource({ ...podcast, type: 'podcast' }); setShowList(null); }}>
+                    <li key={podcast._id || podcast.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-purple-100${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' bg-purple-50' : ''}`} onClick={() => { playResource({ ...podcast, type: 'podcast' }, arr, idx); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-purple-700">{podcast.title}</div>
-                        <div className="text-xs text-gray-500">{podcast.host} • {podcast.duration} • {podcast.type}</div>
+                        <div className="text-xs text-gray-500">{podcast.host || podcast.artist || podcast.speaker} • {podcast.duration} • podcast</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button className={`p-2 bg-purple-500 text-white rounded-full ml-2${activeResource?.type === 'podcast' && activeResource?.title === podcast.title ? ' ring-2 ring-purple-400' : ''}`}><Play size={16} /></button>
@@ -429,7 +428,7 @@ const SongsCard = () => (
             if (!book || typeof book !== 'object') return null;
             const isActive = activeResource && activeResource.type === 'ebook' && (activeResource._id === book._id || activeResource.title === book.title);
             return (
-              <li key={idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-green-200/60' : ''} hover:bg-green-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...book, type: 'ebook' })}>
+              <li key={idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-green-200/60' : ''} hover:bg-green-100/40 transition cursor-pointer text-white`} onClick={() => playResource(book, resourceData.ebooks, idx)}>
                 <div>
                   <div className="font-semibold text-green-100">{book.title}</div>
                   <div className="text-xs text-green-200">{book.author}</div>
@@ -452,7 +451,7 @@ const SongsCard = () => (
                 {resourceData.ebooks.map((book, idx) => {
                   if (!book || typeof book !== 'object') return null;
                   return (
-                  <li key={idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-green-100${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-50' : ''}`} onClick={() => { setActiveResource({ ...book, type: 'ebook' }); setShowList(null); }}>
+                  <li key={idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-green-100${activeResource?.type === 'ebook' && activeResource?.title === book.title ? ' bg-green-50' : ''}`} onClick={() => { playResource(book, resourceData.ebooks, idx); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-green-700">{book.title}</div>
                         <div className="text-xs text-gray-500">{book.author}</div>
@@ -484,7 +483,7 @@ const SongsCard = () => (
             if (!video || typeof video !== 'object') return null;
             const isActive = activeResource && activeResource.type === 'video' && (activeResource._id === video._id || activeResource.title === video.title);
             return (
-              <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-orange-200/60' : ''} hover:bg-orange-100/40 transition cursor-pointer text-white`} onClick={() => setActiveResource({ ...video, type: 'video' })}>
+              <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl${isActive ? ' bg-orange-200/60' : ''} hover:bg-orange-100/40 transition cursor-pointer text-white`} onClick={() => playResource(video, resourceData.videos, idx)}>
                 <div>
                   <div className="font-semibold text-orange-100">{video.title}</div>
                   <div className="text-xs text-orange-200">{video.speaker} • {video.duration}</div>
@@ -507,13 +506,13 @@ const SongsCard = () => (
                 {resourceData.videos.map((video, idx) => {
                   if (!video || typeof video !== 'object') return null;
                   return (
-                    <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-orange-100${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-50' : ''}`} onClick={() => { setActiveResource({ ...video, type: 'video' }); setShowList(null); }}>
+                    <li key={video._id || video.url || idx} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer hover:bg-orange-100${activeResource?.type === 'video' && activeResource?.title === video.title ? ' bg-orange-50' : ''}`} onClick={() => { playResource(video, resourceData.videos, idx); setShowList(null); }}>
                       <div>
                         <div className="font-semibold text-orange-700">{video.title}</div>
                         <div className="text-xs text-gray-500">{video.speaker} • {video.duration}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); setActiveResource({ ...video, type: 'video' }); }}><Play size={16} /></button>
+                        <button className={`p-2 bg-orange-500 text-white rounded-full ml-2${activeResource?.type === 'video' && activeResource?.title === video.title ? ' ring-2 ring-orange-400' : ''}`} onClick={e => { e.stopPropagation(); playResource(video, resourceData.videos, idx); }}><Play size={16} /></button>
                         <button className="p-2 text-red-500 hover:text-red-700" onClick={e => { e.stopPropagation(); handleDeleteResource(video); }} title="Delete"><X size={16} /></button>
                       </div>
                     </li>
