@@ -40,7 +40,6 @@ const Resources = () => {
   // Global player state
   const { activeResource, isPlaying, playResource, pauseResource, resumeResource, stopResource, currentTime, updatePlaybackTime } = useResourcePlayer();
   const [showPdfModal, setShowPdfModal] = useState(false);
-
   // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -161,6 +160,9 @@ const Resources = () => {
               controls
               className="w-64 mb-2"
               onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
+              preload="auto"
+              crossOrigin="anonymous"
+              style={{ borderRadius: '8px' }}
             />
             <div className="flex gap-3">
               <button className={`px-4 py-2 rounded text-white ${isPlaying ? 'bg-purple-600' : 'bg-blue-600'}`} onClick={() => (isPlaying ? pauseResource() : resumeResource())}>
@@ -197,8 +199,11 @@ const Resources = () => {
               src={activeResource.url}
               controls
               className="w-72 mb-2 rounded-xl"
-              style={{ maxHeight: '180px' }}
+              style={{ maxHeight: '180px', borderRadius: '12px' }}
               onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
+              preload="auto"
+              crossOrigin="anonymous"
+              playsInline
             />
             <div className="flex gap-3">
               <button className={`px-4 py-2 rounded text-white ${isPlaying ? 'bg-orange-600' : 'bg-blue-600'}`} onClick={() => (isPlaying ? pauseResource() : resumeResource())}>
@@ -361,7 +366,7 @@ const Resources = () => {
     try {
       await fetch(`${BACKEND_URL}/api/resources/${resource._id}`, { method: 'DELETE' });
       fetchResources();
-      if (activeResource && activeResource._id === resource._id) setActiveResource(null);
+      if (activeResource && activeResource._id === resource._id) stopResource();
     } catch {
       alert('Failed to delete resource');
     }
@@ -515,7 +520,7 @@ const Resources = () => {
       >
         <Plus size={28} />
       </button>
-       {/* Upload Modal */}
+      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowUploadModal(false)}>
           <div className="bg-white rounded-2xl shadow-xl p-4 mx-6 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
@@ -536,15 +541,15 @@ const Resources = () => {
                   required
                 />
               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                 <select name="type" value={uploadForm.type} onChange={handleUploadChange} className="block w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
-                   <option value="song">Song</option>
-                   <option value="podcast">Podcast</option>
-                   <option value="ebook">E-book (PDF)</option>
-                   <option value="video">Video</option>
-                 </select>
-               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select name="type" value={uploadForm.type} onChange={handleUploadChange} className="block w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                  <option value="song">Song</option>
+                  <option value="podcast">Podcast</option>
+                  <option value="ebook">E-book (PDF)</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
                 <input
