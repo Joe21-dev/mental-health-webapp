@@ -117,6 +117,8 @@ app.use(express.json());
 app.use('/resources', express.static(path.join(process.cwd(), 'resources')));
 
 // API routes
+import availableDoctorsRouter from './routes/availableDoctors.js';
+app.use('/api/available-doctors', availableDoctorsRouter);
 app.use('/api/gemini-chat', geminiChatRouter);
 app.use('/api/health', healthRoutes);
 app.use('/api/doctors', doctorsRouter);

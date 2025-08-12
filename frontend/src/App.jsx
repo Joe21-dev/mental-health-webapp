@@ -10,6 +10,7 @@ import { ResourcesRouteWrapper } from './ResourcesRouteWrapper';
 import Scheduler from './pages/Scheduler';
 import About from './pages/About';
 import './App.css';
+import GlobalResourcePlayer from './GlobalResourcePlayer';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 1024);
@@ -28,6 +29,7 @@ function App() {
   return (
     
       <Router>
+        <GlobalResourcePlayer />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path='/signup' element={<Signup />} />

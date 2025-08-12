@@ -6,7 +6,6 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Volume2,
   Brain,
   MessageCircle,
   Users,
@@ -20,6 +19,7 @@ import {
   Calendar,
   ChevronDown
 } from 'lucide-react';
+import { useResourcePlayer } from '../ResourcePlayerContext';
 
 const cardImages = {
   songs: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
@@ -37,20 +37,20 @@ const Resources = () => {
   const [resourceData, setResourceData] = useState({ songs: [], podcasts: [], ebooks: [], videos: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeResource, setActiveResource] = useState(null);
+  // Global player state
+  const { activeResource, isPlaying, playResource, pauseResource, resumeResource, stopResource, currentTime, updatePlaybackTime } = useResourcePlayer();
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('You require admin priviledges to add a resource');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const [uploadForm, setUploadForm] = useState({ file: null, title: '' });
+  const [uploadForm, setUploadForm] = useState({ file: null, title: '', type: 'song' });
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const audioRef = useRef(null);
-  const PLAYBACK_KEY = 'resourcePlayback';
 
   // Info alert for user guidance
   const [showInfo, setShowInfo] = useState(true);
@@ -135,6 +135,20 @@ const Resources = () => {
       );
     }
     if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
+      const audioEl = useRef(null);
+      useEffect(() => {
+        const el = audioEl.current;
+        if (!el) return;
+        try { el.currentTime = Number(currentTime) || 0; } catch {}
+        if (isPlaying) el.play?.().catch(() => {});
+        else el.pause?.();
+      }, [activeResource?.url]);
+      useEffect(() => {
+        const el = audioEl.current;
+        if (!el) return;
+        if (isPlaying) el.play?.().catch(() => {});
+        else el.pause?.();
+      }, [isPlaying]);
       return (
         <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '220px', backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-2xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -142,83 +156,57 @@ const Resources = () => {
             <h3 className="mb-2 mt-3 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
             <div className="text-center text-gray-200 mb-2">{activeResource.type === 'song' ? activeResource.artist : activeResource.host}</div>
             <audio
-              ref={audioRef}
-              controls
-              autoPlay={isPlaying}
+              ref={audioEl}
               src={activeResource.url}
-              className="w-60 mb-2"
-              onPlay={() => {
-                setIsPlaying(true);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: true
-                }));
-              }}
-              onPause={() => {
-                setIsPlaying(false);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: false
-                }));
-              }}
-              onTimeUpdate={() => {
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: audioRef.current?.currentTime || 0,
-                  playing: !audioRef.current?.paused
-                }));
-              }}
-            >
-              Your browser does not support the audio element.
-            </audio>
-            <button className="w-70 py-2 bg-blue-500 text-white rounded mt-2" onClick={() => setActiveResource(null)}>Close Player</button>
+              controls
+              className="w-64 mb-2"
+              onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
+            />
+            <div className="flex gap-3">
+              <button className={`px-4 py-2 rounded text-white ${isPlaying ? 'bg-purple-600' : 'bg-blue-600'}`} onClick={() => (isPlaying ? pauseResource() : resumeResource())}>
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+              <button className="px-4 py-2 rounded bg-gray-700 text-white" onClick={() => stopResource()}>Close Player</button>
+            </div>
           </div>
         </div>
       );
     }
     if (activeResource.type === 'video' && activeResource.url) {
+      const videoEl = useRef(null);
+      useEffect(() => {
+        const el = videoEl.current;
+        if (!el) return;
+        try { el.currentTime = Number(currentTime) || 0; } catch {}
+        if (isPlaying) el.play?.().catch(() => {});
+        else el.pause?.();
+      }, [activeResource?.url]);
+      useEffect(() => {
+        const el = videoEl.current;
+        if (!el) return;
+        if (isPlaying) el.play?.().catch(() => {});
+        else el.pause?.();
+      }, [isPlaying]);
       return (
         <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '320px', backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className="absolute inset-0 rounded-2xl bg-orange-900/60"></div>
           <div className="relative z-10 w-full flex flex-col items-center">
             <h3 className="mb-2 mt-6 text-lg font-bold text-white text-center">Now Playing: {activeResource.title}</h3>
             <video
-              controls
-              autoPlay={isPlaying}
+              ref={videoEl}
               src={activeResource.url}
-              className="w-75 mb-2 rounded-xl"
-              style={{maxHeight: '180px'}} 
-              ref={el => {
-                if (el && localStorage.getItem(PLAYBACK_KEY)) {
-                  try {
-                    const { time, playing } = JSON.parse(localStorage.getItem(PLAYBACK_KEY));
-                    el.currentTime = time || 0;
-                    if (playing) setTimeout(() => el.play(), 200);
-                  } catch {}
-                }
-              }}
-              onPlay={e => {
-                setIsPlaying(true);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: e.target.currentTime,
-                  playing: true
-                }));
-              }}
-              onPause={e => {
-                setIsPlaying(false);
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: e.target.currentTime,
-                  playing: false
-                }));
-              }}
-              onTimeUpdate={e => {
-                localStorage.setItem(PLAYBACK_KEY, JSON.stringify({
-                  time: e.target.currentTime,
-                  playing: !e.target.paused
-                }));
-              }}
-            ></video>
+              controls
+              className="w-72 mb-2 rounded-xl"
+              style={{ maxHeight: '180px' }}
+              onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
+            />
+            <div className="flex gap-3">
+              <button className={`px-4 py-2 rounded text-white ${isPlaying ? 'bg-orange-600' : 'bg-blue-600'}`} onClick={() => (isPlaying ? pauseResource() : resumeResource())}>
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+              <button className="px-4 py-2 rounded bg-gray-700 text-white" onClick={() => stopResource()}>Close Player</button>
+            </div>
             <div className="text-center text-gray-200 mb-1">Speaker: {activeResource.speaker}</div>
-            <button className="w-70 py-2 bg-orange-500 text-white rounded mt-2 mb-4" onClick={() => setActiveResource(null)}>Close Player</button>
           </div>
         </div>
       );
@@ -273,7 +261,7 @@ const Resources = () => {
               <h3 className={`font-semibold text-lg mb-4 text-${color}-700`}>All {title}</h3>
               <ul className="space-y-2 overflow-y-auto" style={{maxHeight:'60vh'}}>
                 {items.map((item, idx) => (
-                  <li key={item._id || item.url || idx} className={`flex items-center justify-between p-2 rounded-xl bg-${color}-50 text-${color}-700 cursor-pointer`} onClick={() => { setActiveResource(item); setShowList(null); }}>
+                  <li key={item._id || item.url || idx} className={`flex items-center justify-between p-2 rounded-xl bg-${color}-50 text-${color}-700 cursor-pointer`} onClick={() => { playResource(item, items, idx); setShowList(null); }}>
                     <div>
                       <div className={`font-semibold text-${color}-700`}>{item.title}</div>
                       <div className="text-xs text-gray-500">{type === 'songs' ? item.artist : type === 'podcasts' ? item.host : type === 'ebooks' ? item.author : item.speaker}</div>
@@ -323,19 +311,28 @@ const Resources = () => {
       const formData = new FormData();
       formData.append('file', uploadForm.file);
       formData.append('title', uploadForm.title);
+      formData.append('type', uploadForm.type);
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || import.meta.env.VITE_LOCAL_DEV === 'true';
       const uploadUrl = isLocal ? `${BACKEND_URL}/api/resources/upload-local` : `${BACKEND_URL}/api/resources/upload`;
       await new Promise((resolve, reject) => {
         const xhr = new window.XMLHttpRequest();
         xhr.open('POST', uploadUrl);
+        if (!isLocal) {
+          const token = localStorage.getItem('token');
+          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
         xhr.onload = () => {
-          if (xhr.status === 200) {
+          if (xhr.status >= 200 && xhr.status < 300) {
             setUploadSuccess(true);
             setUploadProgress(100);
             fetchResources();
+            setShowUploadModal(false);
+            setUploadForm({ file: null, title: '', type: 'song' });
             resolve();
           } else {
-            setUploadError('Upload failed');
+            let msg = 'Upload failed';
+            try { const r = JSON.parse(xhr.responseText); if (r && r.error) msg = r.error; } catch {}
+            setUploadError(msg);
             reject();
           }
           setUploading(false);
@@ -518,7 +515,7 @@ const Resources = () => {
       >
         <Plus size={28} />
       </button>
-      {/* Upload Modal */}
+       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowUploadModal(false)}>
           <div className="bg-white rounded-2xl shadow-xl p-4 mx-6 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
@@ -539,6 +536,15 @@ const Resources = () => {
                   required
                 />
               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                 <select name="type" value={uploadForm.type} onChange={handleUploadChange} className="block w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                   <option value="song">Song</option>
+                   <option value="podcast">Podcast</option>
+                   <option value="ebook">E-book (PDF)</option>
+                   <option value="video">Video</option>
+                 </select>
+               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
                 <input
