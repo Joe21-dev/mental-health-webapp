@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Home, BarChart3, Calendar, Users, Music, Brain, Menu, X, MessageCircle, Shield, BookOpen, UserPlus, UserCheck, UserX, PlusCircle, ClipboardCheck, Activity } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL;
@@ -24,6 +24,7 @@ export default function TherapistsMobile() {
   const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Fetch user info from backend if token exists
   useEffect(() => {
@@ -126,10 +127,10 @@ export default function TherapistsMobile() {
       
       if (newBooked) {
         setSelectedDoctor(updatedDoctor);
-        toast.success('Therapist booked successfully!');
+        toast.success('Therapist booked successfully! You can now add your condition.');
       } else {
         setSelectedDoctor(null);
-        toast.info('Therapist unbooked successfully!');
+        toast.info('Therapist unbooked successfully! Your booking has been removed.');
       }
     } catch (err) {
       console.error('Error booking doctor:', err);
@@ -192,7 +193,7 @@ export default function TherapistsMobile() {
       }
       
       setConditionModalOpen(false);
-      toast.success('Condition added successfully!');
+      toast.success('Condition added successfully! Your therapy plan has been updated.');
     } catch (err) {
       console.error('Error adding condition:', err);
       toast.error('Failed to add condition. Please try again.');

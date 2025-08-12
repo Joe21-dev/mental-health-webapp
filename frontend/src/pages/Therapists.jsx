@@ -123,10 +123,10 @@ const Therapists = () => {
       
       if (newBooked) {
         setSelectedDoctor(updatedDoctor);
-        alert('Therapist booked successfully!');
+        alert('Therapist booked successfully! You can now add your condition.');
       } else {
         setSelectedDoctor(null);
-        alert('Therapist unbooked successfully!');
+        alert('Therapist unbooked successfully! Your booking has been removed.');
       }
     } catch (err) {
       console.error('Error booking doctor:', err);
@@ -189,7 +189,7 @@ const Therapists = () => {
       }
       
       setConditionModalOpen(false);
-      alert('Condition added successfully!');
+      alert('Condition added successfully! Your therapy plan has been updated.');
     } catch (err) {
       console.error('Error adding condition:', err);
       alert('Failed to add condition. Please try again.');

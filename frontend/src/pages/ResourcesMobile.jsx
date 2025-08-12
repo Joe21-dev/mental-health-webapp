@@ -133,7 +133,8 @@ export default function ResourcesMobile() {
         </div>
       );
     }
-    if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
+    // Local player active only on resources route to avoid global overlap
+    if (location.pathname.startsWith('/platform/resources') && (activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
       const audioEl = useRef(null);
       
       useEffect(() => {
@@ -207,7 +208,7 @@ export default function ResourcesMobile() {
         </div>
       );
     }
-    if (activeResource.type === 'video' && activeResource.url) {
+    if (location.pathname.startsWith('/platform/resources') && activeResource.type === 'video' && activeResource.url) {
       const videoEl = useRef(null);
       
       useEffect(() => {
@@ -454,7 +455,7 @@ export default function ResourcesMobile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 overflow-y-auto">
       {/* Mobile Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm px-4 py-3 flex items-center justify-between lg:hidden">
         <button onClick={() => navigate('/platform')}>
@@ -492,14 +493,14 @@ export default function ResourcesMobile() {
 
       {/* Info alert */}
       {showInfo && (
-        <div className="mb-4 p-4 mx-6 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
+        <div className="mt-4 mb-4 p-4 mx-4 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
           <p className="text-sm">
             Browse and play songs, podcasts, e-books, and videos to support your mental health. Click a card title to see all resources. Select any item to play or read instantly.
           </p>
         </div>
       )}
 
-      <div className='px-4 py-4'>
+      <div className='px-4 py-4 pb-32'>
         {/* ActiveCard for mobile */}
         <ActiveCard />
         
@@ -527,7 +528,7 @@ export default function ResourcesMobile() {
 
       {/* Floating Upload Button */}
       <button
-        className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="fixed bottom-20 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
         style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
         onClick={handleShowUploadModal}
         aria-label="Upload Resource"

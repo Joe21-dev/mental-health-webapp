@@ -18,6 +18,21 @@ export default function GlobalResourcePlayer() {
   // Avoid double playback on Resources page (both desktop and mobile render visible players)
   const onResourcesPage = location.pathname.startsWith('/platform/resources');
 
+  // If user navigates to Resources page, aggressively pause and detach global media
+  useEffect(() => {
+    const el = mediaRef.current;
+    if (!el) return;
+    if (onResourcesPage) {
+      try {
+        el.pause();
+        // Detach src to ensure no residual audio continues
+        el.removeAttribute('src');
+        // Force a load reset
+        el.load?.();
+      } catch {}
+    }
+  }, [onResourcesPage]);
+
   // Load new source and seek when activeResource changes
   useEffect(() => {
     const el = mediaRef.current;

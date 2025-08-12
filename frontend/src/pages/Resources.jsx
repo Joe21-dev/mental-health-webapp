@@ -133,7 +133,8 @@ const Resources = () => {
         </div>
       );
     }
-    if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
+    // Render local player ONLY when on resources route to avoid global overlap
+    if (location.pathname.startsWith('/platform/resources') && (activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
       const audioEl = useRef(null);
       
       useEffect(() => {
@@ -207,7 +208,7 @@ const Resources = () => {
         </div>
       );
     }
-    if (activeResource.type === 'video' && activeResource.url) {
+    if (location.pathname.startsWith('/platform/resources') && activeResource.type === 'video' && activeResource.url) {
       const videoEl = useRef(null);
       
       useEffect(() => {
