@@ -69,6 +69,28 @@ const Therapists = () => {
       });
   }, []);
 
+  // Load user's therapy data from backend
+  useEffect(() => {
+    if (!userId) return;
+    
+    // Fetch user's therapy tracker data
+    fetch(`${BACKEND_URL}/api/therapy-tracker?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const latestTracker = data[data.length - 1];
+          setTracker(latestTracker);
+          setCurrentTherapy({
+            username: latestTracker.username,
+            condition: latestTracker.condition,
+            suggestedTreatment: latestTracker.suggestedTreatment,
+            dateAdded: latestTracker.createdAt
+          });
+        }
+      })
+      .catch(err => console.error('Error loading therapy data:', err));
+  }, [userId]);
+
   // Book/unbook doctor
   const handleBookDoctor = async (doctor) => {
     if (!userId) {
@@ -126,8 +148,31 @@ const Therapists = () => {
         dateAdded: new Date().toLocaleString() 
       });
       
+      // Save condition to backend
+      const therapyData = {
+        userId,
+        username: user.username,
+        condition,
+        suggestedTreatment: treatment,
+        doctorName: selectedDoctor?.name || 'Not assigned',
+        sessionsRequired: Math.floor(Math.random() * 10) + 5,
+        progress: 0,
+        consistency: 'red'
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/therapy-tracker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(therapyData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save condition');
+      
+      const savedTracker = await response.json();
+      setTracker(savedTracker);
+      
       if (selectedDoctor) {
-        const response = await fetch(`${BACKEND_URL}/api/therapists/${selectedDoctor._id}`, {
+        const response2 = await fetch(`${BACKEND_URL}/api/therapists/${selectedDoctor._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -140,7 +185,7 @@ const Therapists = () => {
           })
         });
         
-        if (!response.ok) throw new Error('Failed to add condition');
+        if (!response2.ok) throw new Error('Failed to add condition to doctor');
       }
       
       setConditionModalOpen(false);
@@ -186,7 +231,7 @@ const Therapists = () => {
 
   // Responsive header (copied from Scheduler)
   const Header = () => (
-    <nav className="flex items-center justify-between pt-6 mb-8">
+    <nav className="flex items-center justify-between pt-6 px-6 mb-8">
       <div className="flex items-center space-x-4">
         <div className="flex items-center justify-center w-10 h-10 transition-transform bg-gray-800 rounded-full cursor-pointer hover:scale-105" onClick={() => navigate('/platform')}>
           <Brain className="w-5 h-5 text-white" />

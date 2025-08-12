@@ -3,32 +3,83 @@ import TherapyTracker from '../models/TherapyTracker.js';
 
 const router = express.Router();
 
-// Get tracker for a user (for now, use 'User' as default)
+// Get tracker for a user
 router.get('/', async (req, res) => {
-  const user = req.query.user || 'User';
-  const tracker = await TherapyTracker.findOne({ user }).sort({ bookedAt: -1 });
-  res.json(tracker || {});
+  try {
+    const { userId } = req.query;
+    if (userId) {
+      const trackers = await TherapyTracker.find({ userId }).sort({ createdAt: -1 });
+      res.json(trackers);
+    } else {
+      const trackers = await TherapyTracker.find().sort({ createdAt: -1 });
+      res.json(trackers);
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch therapy tracker data' });
+  }
 });
 
-// Update or create tracker for a user
+// Create new therapy tracker entry
 router.post('/', async (req, res) => {
-  const { user = 'User', doctor, therapy, condition, date, description, bookedAt, streak, longestStreak } = req.body;
-  let tracker = await TherapyTracker.findOne({ user });
-  if (tracker) {
-    tracker.doctor = doctor;
-    tracker.therapy = therapy;
-    tracker.condition = condition;
-    tracker.date = date;
-    tracker.description = description;
-    tracker.bookedAt = bookedAt;
-    tracker.streak = streak;
-    tracker.longestStreak = longestStreak;
+  try {
+    const {
+      userId,
+      username,
+      condition,
+      suggestedTreatment,
+      doctorName,
+      sessionsRequired,
+      progress,
+      consistency
+    } = req.body;
+
+    const tracker = new TherapyTracker({
+      userId,
+      username,
+      condition,
+      suggestedTreatment,
+      doctorName,
+      sessionsRequired,
+      progress,
+      consistency,
+      createdAt: new Date()
+    });
+
     await tracker.save();
-  } else {
-    tracker = new TherapyTracker({ user, doctor, therapy, condition, date, description, bookedAt, streak, longestStreak });
-    await tracker.save();
+    res.status(201).json(tracker);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create therapy tracker entry' });
   }
-  res.json(tracker);
+});
+
+// Update therapy tracker
+router.put('/:id', async (req, res) => {
+  try {
+    const tracker = await TherapyTracker.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!tracker) {
+      return res.status(404).json({ error: 'Therapy tracker not found' });
+    }
+    res.json(tracker);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update therapy tracker' });
+  }
+});
+
+// Delete therapy tracker
+router.delete('/:id', async (req, res) => {
+  try {
+    const tracker = await TherapyTracker.findByIdAndDelete(req.params.id);
+    if (!tracker) {
+      return res.status(404).json({ error: 'Therapy tracker not found' });
+    }
+    res.json({ message: 'Therapy tracker deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete therapy tracker' });
+  }
 });
 
 export default router;

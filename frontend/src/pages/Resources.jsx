@@ -135,19 +135,45 @@ const Resources = () => {
     }
     if ((activeResource.type === 'song' || activeResource.type === 'podcast') && activeResource.url) {
       const audioEl = useRef(null);
+      
       useEffect(() => {
         const el = audioEl.current;
         if (!el) return;
-        try { el.currentTime = Number(currentTime) || 0; } catch {}
-        if (isPlaying) el.play?.().catch(() => {});
-        else el.pause?.();
+        
+        // Set up audio context for better audio handling
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaElementSource(el);
+        const gainNode = audioContext.createGain();
+        
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set audio properties for smooth playback
+        el.preload = 'auto';
+        el.crossOrigin = 'anonymous';
+        el.volume = 1.0;
+        
+        // Restore playback position
+        if (currentTime > 0) {
+          el.currentTime = currentTime;
+        }
+        
+        return () => {
+          audioContext.close();
+        };
       }, [activeResource?.url]);
+      
       useEffect(() => {
         const el = audioEl.current;
         if (!el) return;
-        if (isPlaying) el.play?.().catch(() => {});
-        else el.pause?.();
+        
+        if (isPlaying) {
+          el.play().catch(err => console.log('Play failed:', err));
+        } else {
+          el.pause();
+        }
       }, [isPlaying]);
+      
       return (
         <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '220px', backgroundImage: `url(${cardImages[activeResource.type + 's']})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className={`absolute inset-0 rounded-2xl ${activeResource.type === 'song' ? 'bg-blue-900/60' : 'bg-purple-900/60'}`}></div>
@@ -160,9 +186,16 @@ const Resources = () => {
               controls
               className="w-64 mb-2"
               onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
-              preload="auto"
-              crossOrigin="anonymous"
+              onLoadedMetadata={() => {
+                const el = audioEl.current;
+                if (el && currentTime > 0) {
+                  el.currentTime = currentTime;
+                }
+              }}
+              onError={(e) => console.error('Audio error:', e)}
               style={{ borderRadius: '8px' }}
+              onPlay={() => resumeResource()}
+              onPause={() => pauseResource()}
             />
             <div className="flex gap-3">
               <button className={`px-4 py-2 rounded text-white ${isPlaying ? 'bg-purple-600' : 'bg-blue-600'}`} onClick={() => (isPlaying ? pauseResource() : resumeResource())}>
@@ -176,19 +209,35 @@ const Resources = () => {
     }
     if (activeResource.type === 'video' && activeResource.url) {
       const videoEl = useRef(null);
+      
       useEffect(() => {
         const el = videoEl.current;
         if (!el) return;
-        try { el.currentTime = Number(currentTime) || 0; } catch {}
-        if (isPlaying) el.play?.().catch(() => {});
-        else el.pause?.();
+        
+        // Set video properties for smooth playback
+        el.preload = 'auto';
+        el.crossOrigin = 'anonymous';
+        el.playsInline = true;
+        el.muted = false;
+        el.volume = 1.0;
+        
+        // Restore playback position
+        if (currentTime > 0) {
+          el.currentTime = currentTime;
+        }
       }, [activeResource?.url]);
+      
       useEffect(() => {
         const el = videoEl.current;
         if (!el) return;
-        if (isPlaying) el.play?.().catch(() => {});
-        else el.pause?.();
+        
+        if (isPlaying) {
+          el.play().catch(err => console.log('Video play failed:', err));
+        } else {
+          el.pause();
+        }
       }, [isPlaying]);
+      
       return (
         <div className="w-full mx-auto mb-4 bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden max-w-md" style={{height: '320px', backgroundImage: `url(${cardImages.videos})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
           <div className="absolute inset-0 rounded-2xl bg-orange-900/60"></div>
@@ -201,8 +250,15 @@ const Resources = () => {
               className="w-72 mb-2 rounded-xl"
               style={{ maxHeight: '180px', borderRadius: '12px' }}
               onTimeUpdate={(e) => updatePlaybackTime(e.currentTarget.currentTime)}
-              preload="auto"
-              crossOrigin="anonymous"
+              onLoadedMetadata={() => {
+                const el = videoEl.current;
+                if (el && currentTime > 0) {
+                  el.currentTime = currentTime;
+                }
+              }}
+              onError={(e) => console.error('Video error:', e)}
+              onPlay={() => resumeResource()}
+              onPause={() => pauseResource()}
               playsInline
             />
             <div className="flex gap-3">
@@ -226,9 +282,17 @@ const Resources = () => {
             <button className="w-70 py-2 bg-green-500 text-white rounded mt-2" onClick={() => setShowPdfModal(true)}>Read PDF</button>
             {showPdfModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowPdfModal(false)}>
-                <div className="bg-white rounded-2xl shadow-xl p-2 w-full max-w-xs relative animate-fadeIn border border-gray-100 flex flex-col" onClick={e => e.stopPropagation()}>
-                  <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowPdfModal(false)} aria-label="Close"><X size={20} /></button>
-                  <iframe src={activeResource.url.startsWith('/resources/') ? `${window.location.origin}${activeResource.url}` : activeResource.url} title="E-book PDF" width="100%" height="120px" style={{border:0}}></iframe>
+                <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-4xl relative animate-fadeIn border border-gray-100 flex flex-col" style={{height: '90vh'}} onClick={e => e.stopPropagation()}>
+                  <button type="button" className="absolute top-4 right-4 text-gray-400 hover:text-black text-xl z-10" onClick={() => setShowPdfModal(false)} aria-label="Close"><X size={24} /></button>
+                  <div className="w-full h-full">
+                    <iframe 
+                      src={activeResource.url.startsWith('/resources/') ? `${window.location.origin}${activeResource.url}` : activeResource.url} 
+                      title="E-book PDF" 
+                      width="100%" 
+                      height="100%" 
+                      style={{border:0, borderRadius: '8px'}}
+                    />
+                  </div>
                 </div>
               </div>
             )}

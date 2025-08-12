@@ -1,18 +1,16 @@
 import mongoose from 'mongoose';
 
 const therapyTrackerSchema = new mongoose.Schema({
-  user: { type: String, required: true }, // username or userId
-  doctor: {
-    name: String,
-    specialty: String,
-  },
-  therapy: String,
-  condition: String,
-  date: String, // ISO date string
-  description: String,
-  bookedAt: String, // ISO datetime string
-  streak: { type: Number, default: 1 },
-  longestStreak: { type: Number, default: 1 },
+  userId: { type: String, required: true },
+  username: { type: String, required: true },
+  condition: { type: String, required: true },
+  suggestedTreatment: { type: String, required: true },
+  doctorName: { type: String, default: 'Not assigned' },
+  sessionsRequired: { type: Number, default: 5 },
+  progress: { type: Number, default: 0 },
+  consistency: { type: String, enum: ['red', 'orange', 'green'], default: 'red' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 export default mongoose.model('TherapyTracker', therapyTrackerSchema, 'therapytrackers');

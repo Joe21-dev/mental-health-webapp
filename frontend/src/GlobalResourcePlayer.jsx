@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useResourcePlayer } from './ResourcePlayerContext';
 
@@ -15,13 +15,7 @@ export default function GlobalResourcePlayer() {
   const mediaRef = useRef(null);
   const location = useLocation();
 
-  // Avoid double playback on desktop Resources page (desktop renders visible player)
-  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 1024 : true);
-  useEffect(() => {
-    const onResize = () => setIsDesktop(window.innerWidth > 1024);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+  // Avoid double playback on Resources page (both desktop and mobile render visible players)
   const onResourcesPage = location.pathname.startsWith('/platform/resources');
 
   // Load new source and seek when activeResource changes
@@ -50,12 +44,28 @@ export default function GlobalResourcePlayer() {
     const el = mediaRef.current;
     if (!el) return;
     if (!activeResource || !activeResource.url) return;
-    if (isPlaying) {
-      el.play?.().catch(() => {});
-    } else {
-      el.pause?.();
+    
+    // Set up audio context for better audio handling
+    if (activeResource.type === 'song' || activeResource.type === 'podcast') {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaElementSource(el);
+      const gainNode = audioContext.createGain();
+      
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Set audio properties for smooth playback
+      el.preload = 'auto';
+      el.crossOrigin = 'anonymous';
+      el.volume = 1.0;
     }
-  }, [isPlaying]);
+    
+    if (isPlaying) {
+      el.play().catch(err => console.log('Global play failed:', err));
+    } else {
+      el.pause();
+    }
+  }, [isPlaying, activeResource]);
 
   // Persist time updates
   const handleTimeUpdate = () => {
@@ -69,7 +79,7 @@ export default function GlobalResourcePlayer() {
   };
 
   if (!activeResource || !activeResource.url) return null;
-  if (onResourcesPage && isDesktop) return null;
+  if (onResourcesPage) return null; // Don't render global player on Resources page to avoid double playback
 
   if (activeResource.type === 'video') {
     return (
@@ -79,7 +89,16 @@ export default function GlobalResourcePlayer() {
         src={activeResource.url}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
+        preload="auto"
+        crossOrigin="anonymous"
         playsInline
+        onLoadedMetadata={() => {
+          const el = mediaRef.current;
+          if (el && currentTime > 0) {
+            el.currentTime = currentTime;
+          }
+        }}
+        onError={(e) => console.error('Global video error:', e)}
       />
     );
   }
@@ -92,6 +111,15 @@ export default function GlobalResourcePlayer() {
       src={activeResource.url}
       onTimeUpdate={handleTimeUpdate}
       onEnded={handleEnded}
+      preload="auto"
+      crossOrigin="anonymous"
+      onLoadedMetadata={() => {
+        const el = mediaRef.current;
+        if (el && currentTime > 0) {
+          el.currentTime = currentTime;
+        }
+      }}
+      onError={(e) => console.error('Global audio error:', e)}
     />
   );
 }

@@ -1,25 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { Home, BarChart3, Calendar, Users, Music, Brain, Menu, X, MessageCircle, Shield, BookOpen } from 'lucide-react';
+import { Home, BarChart3, Calendar, Users, Music, Brain, Menu, X, MessageCircle, Shield, BookOpen, UserPlus, UserCheck, UserX, PlusCircle, ClipboardCheck, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL;
 
 export default function TherapistsMobile() {
-  const [bookedDoctorId, setBookedDoctorId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [user, setUser] = useState({ username: '', name: '' });
+  const [conditionModalOpen, setConditionModalOpen] = useState(false);
+  const [condition, setCondition] = useState('');
+  const [suggestedTreatment, setSuggestedTreatment] = useState('');
+  const [currentTherapy, setCurrentTherapy] = useState(null);
+  const [tracker, setTracker] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [therapyTracker, setTherapyTracker] = useState(null);
-  const [userCondition, setUserCondition] = useState('');
-  const [recommendedTherapy, setRecommendedTherapy] = useState('');
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [showInfo, setShowInfo] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showAvatarDropdown, setShowAvatarDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Fetch user info from backend if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch(`${BACKEND_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUserName(data.name || '');
+          setUserEmail(data.email || '');
+          setUserId(data.id || data._id || null);
+          setUser({ username: data.email || data.name, name: data.name || '' });
+        })
+        .catch(() => {
+          setUserName('');
+          setUserEmail('');
+          setUserId(null);
+          setUser({ username: '', name: '' });
+        });
+    } else {
+      setUserName(localStorage.getItem('userName') || '');
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserId(localStorage.getItem('userId') || null);
+      setUser({ username: localStorage.getItem('userName') || '', name: localStorage.getItem('userName') || '' });
+    }
+  }, []);
+
+  // Fetch available doctors
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -30,32 +64,149 @@ export default function TherapistsMobile() {
       })
       .then(data => {
         setDoctors(data);
-        // Find if any doctor is booked by this user
-        const booked = data.find(d => d.bookedBy === userId);
-        setBookedDoctorId(booked ? booked._id : null);
         setLoading(false);
       })
       .catch(err => {
-        setError('Could not fetch therapists. Please check your connection or try again later.');
+        setError('Failed to load therapists: ' + err.message);
         setLoading(false);
       });
+  }, []);
+
+  // Load user's therapy data from backend
+  useEffect(() => {
+    if (!userId) return;
+    
+    // Fetch user's therapy tracker data
+    fetch(`${BACKEND_URL}/api/therapy-tracker?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const latestTracker = data[data.length - 1];
+          setTracker(latestTracker);
+          setCurrentTherapy({
+            username: latestTracker.username,
+            condition: latestTracker.condition,
+            suggestedTreatment: latestTracker.suggestedTreatment,
+            dateAdded: latestTracker.createdAt
+          });
+        }
+      })
+      .catch(err => console.error('Error loading therapy data:', err));
   }, [userId]);
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem('therapyTrackerMobile');
-    if (stored) {
-      setTherapyTracker(JSON.parse(stored));
+  // Book/unbook doctor
+  const handleBookDoctor = async (doctor) => {
+    if (!userId) {
+      toast.error('Please log in to book a therapist');
+      return;
     }
-  }, []);
-  
-  useEffect(() => {
-    if (therapyTracker) {
-      sessionStorage.setItem('therapyTrackerMobile', JSON.stringify(therapyTracker));
-    } else {
-      sessionStorage.removeItem('therapyTrackerMobile');
-    }
-  }, [therapyTracker]);
 
+    try {
+      const isBookedByUser = doctor.bookedBy === userId;
+      const newBooked = !isBookedByUser;
+      
+      const response = await fetch(`${BACKEND_URL}/api/therapists/${doctor._id}/book`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          booked: newBooked,
+          bookedBy: newBooked ? userId : null,
+          bookingInfo: newBooked ? {
+            userId,
+            username: userName,
+            bookedAt: new Date().toISOString()
+          } : null
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update booking');
+      
+      const updatedDoctor = await response.json();
+      setDoctors(doctors.map(d => d._id === doctor._id ? updatedDoctor : d));
+      
+      if (newBooked) {
+        setSelectedDoctor(updatedDoctor);
+        toast.success('Therapist booked successfully!');
+      } else {
+        setSelectedDoctor(null);
+        toast.info('Therapist unbooked successfully!');
+      }
+    } catch (err) {
+      console.error('Error booking doctor:', err);
+      toast.error('Failed to book/unbook doctor. Please try again.');
+    }
+  };
+
+  // Add condition
+  const handleAddCondition = async () => {
+    if (!user.username || !condition) return;
+    
+    try {
+      const treatment = `Treatment for ${condition}`;
+      setSuggestedTreatment(treatment);
+      setCurrentTherapy({ 
+        username: user.username, 
+        condition, 
+        suggestedTreatment: treatment, 
+        dateAdded: new Date().toLocaleString() 
+      });
+      
+      // Save condition to backend
+      const therapyData = {
+        userId,
+        username: user.username,
+        condition,
+        suggestedTreatment: treatment,
+        doctorName: selectedDoctor?.name || 'Not assigned',
+        sessionsRequired: Math.floor(Math.random() * 10) + 5,
+        progress: 0,
+        consistency: 'red'
+      };
+
+      const response = await fetch(`${BACKEND_URL}/api/therapy-tracker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(therapyData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save condition');
+      
+      const savedTracker = await response.json();
+      setTracker(savedTracker);
+      
+      if (selectedDoctor) {
+        const response2 = await fetch(`${BACKEND_URL}/api/therapists/${selectedDoctor._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conditions: [...(selectedDoctor.conditions || []), {
+              username: user.username,
+              condition,
+              suggestedTreatment: treatment,
+              dateAdded: new Date()
+            }]
+          })
+        });
+        
+        if (!response2.ok) throw new Error('Failed to add condition to doctor');
+      }
+      
+      setConditionModalOpen(false);
+      toast.success('Condition added successfully!');
+    } catch (err) {
+      console.error('Error adding condition:', err);
+      toast.error('Failed to add condition. Please try again.');
+    }
+  };
+
+  // Progress bar color
+  const getProgressColor = (progress) => {
+    if (progress < 33) return 'bg-red-500';
+    if (progress < 66) return 'bg-orange-500';
+    return 'bg-green-500';
+  };
+
+  // Info alert for user guidance
   useEffect(() => {
     if (showInfo) {
       const timer = setTimeout(() => setShowInfo(false), 12000);
@@ -71,187 +222,32 @@ export default function TherapistsMobile() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetch(`${BACKEND_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          setUserName(data.name || '');
-          setUserEmail(data.email || '');
-          setUserId(data.id || data._id || null);
-        })
-        .catch(() => {
-          setUserName('');
-          setUserEmail('');
-          setUserId(null);
-        });
-    } else {
-      setUserName(localStorage.getItem('userName') || '');
-      setUserEmail(localStorage.getItem('userEmail') || '');
-      setUserId(localStorage.getItem('userId') || null);
-    }
-  }, []);
-
-  function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    let color = '#';
-    for (let i = 0; i < 3; i++) {
-      const value = (hash >> (i * 8)) & 0xFF;
-      color += ('00' + value.toString(16)).slice(-2);
-    }
-    return color;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading therapists...</p>
+        </div>
+      </div>
+    );
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-    if (name === 'condition') {
-      setUserCondition(value);
-      if (value.toLowerCase().includes('anxiety')) setRecommendedTherapy('Cognitive Behavioral Therapy');
-      else if (value.toLowerCase().includes('depression')) setRecommendedTherapy('Behavioral Activation');
-      else if (value.toLowerCase().includes('stress')) setRecommendedTherapy('Mindfulness Therapy');
-      else setRecommendedTherapy('General Therapy');
-    }
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    if (!form.name.trim() || !form.specialty.trim()) return;
-    
-    fetch(`${BACKEND_URL}/api/therapists`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        specialty: form.specialty,
-      }),
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to add therapist');
-        return fetch(`${BACKEND_URL}/api/therapists`);
-      })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch updated therapists');
-        return res.json();
-      })
-      .then(data => {
-        setDoctors(data);
-        setForm({ name: '', specialty: '' });
-        setShowForm(false);
-        toast.success('Therapist added successfully!');
-      })
-      .catch(err => {
-        console.error('Error adding therapist:', err);
-        toast.error('Failed to add therapist. Please try again.');
-      });
-  }
-
-  function handleBook(d) {
-    if (!userId) return toast.error('You must be logged in to book a doctor');
-    
-    // Only allow booking if no other doctor is booked by this user or this doctor is already booked by this user
-    if (!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id) {
-      toast.error('You can only book one therapist at a time');
-      return;
-    }
-    
-    const isBookedByUser = d.bookedBy === userId;
-    const newBooked = !isBookedByUser;
-    const bookingInfo = newBooked ? {
-      userId,
-      name: userName,
-      day: 'Monday',
-      date: new Date().toISOString().slice(0,10),
-      description: 'Booked via button',
-      bookedAt: new Date().toISOString(),
-      condition: d.condition || userCondition,
-      therapy: d.therapy || recommendedTherapy
-    } : null;
-    
-    fetch(`${BACKEND_URL}/api/therapists/${d._id}/book`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ booked: newBooked, bookingInfo })
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to update booking');
-        return fetch(`${BACKEND_URL}/api/therapists`);
-      })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch updated therapists');
-        return res.json();
-      })
-      .then(data => {
-        setDoctors(data);
-        // Update bookedDoctorId state
-        if (newBooked) {
-          setBookedDoctorId(d._id);
-          toast.success('Therapist booked successfully!');
-        } else {
-          setBookedDoctorId(null);
-          toast.info('Therapist unbooked');
-        }
-        
-        if (newBooked) {
-          const bookedDoctor = data.find(doc => doc._id === d._id);
-          setTherapyTracker({
-            doctor: bookedDoctor,
-            day: bookingInfo.day,
-            date: bookingInfo.date,
-            description: bookingInfo.description,
-            streak: 1,
-            longestStreak: 1,
-            bookedAt: bookingInfo.bookedAt
-          });
-        } else {
-          setTherapyTracker(null);
-        }
-      })
-      .catch(err => {
-        console.error('Error booking therapist:', err);
-        toast.error('Failed to book/unbook therapist. Please try again.');
-      });
-  }
-
-  const [showForm, setShowForm] = useState(false);
-  const [showUserForm, setShowUserForm] = useState(false);
-  const [form, setForm] = useState({ name: '', specialty: '' });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [doctors, setDoctors] = useState([]);
-
-  // Delete doctor handler
-  const handleDeleteDoctor = async (id) => {
-    const doctor = doctors.find(d => d._id === id);
-    if (!doctor || doctor.seeded) {
-      toast.error('Cannot delete default seeded doctor.');
-      return;
-    }
-    if (!window.confirm('Are you sure you want to delete this doctor?')) return;
-    
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/therapists/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete doctor');
-      
-      setDoctors(prev => prev.filter(d => d._id !== id));
-      if (bookedDoctorId === id) {
-        setBookedDoctorId(null);
-        setTherapyTracker(null);
-        sessionStorage.removeItem('therapyTrackerMobile');
-      }
-      toast.success('Therapist deleted successfully!');
-    } catch (err) {
-      console.error('Error deleting therapist:', err);
-      toast.error('Failed to delete therapist. Please try again.');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -270,7 +266,7 @@ export default function TherapistsMobile() {
         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer relative" onClick={() => setShowAvatarDropdown(v => !v)}>
           <span className="text-white font-bold text-lg">{(userName && userName.length > 0) ? userName[0].toUpperCase() : 'U'}</span>
           {showAvatarDropdown && (
-            <div className="absolute right-0 mt-45 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
+            <div className="absolute right-0 mt-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 animate-fadeIn">
               <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={e => { e.stopPropagation(); setShowAvatarDropdown(false); }} aria-label="Close"><X /></button>
               <div className="p-4 border-b border-gray-200">
                 <div className="font-bold text-lg text-blue-700">{userName}</div>
@@ -327,169 +323,103 @@ export default function TherapistsMobile() {
       {showInfo && (
         <div className="mb-4 p-4 mx-6 bg-blue-50 border-l-4 border-blue-400 text-blue-700 rounded-lg shadow">
           <p className="text-sm">
-            Hello!!! Book a doctor easily by clicking the book button. Ensure you have added your condition. Thank You.
+            Book a therapist easily by clicking the book button. Add your condition to get personalized therapy recommendations.
           </p>
         </div>
       )}
 
-      <div className='px-4 py-4'>
-        <h2 className="font-bold text-xl mb-4">Doctors</h2>
-        <div className="flex gap-2 mb-4">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowUserForm(true)}>
-            Add Condition
-          </button>
-        </div>
-        
-        {loading ? (
-          <div className="text-center text-gray-500 py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            Loading therapists...
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 py-8">
-            <p className="mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (!doctors || doctors.length === 0) ? (
-          <div className="text-gray-500 text-center py-8">No therapists available.</div>
-        ) : (
-          <ul className="space-y-4">
-            {doctors.map(d => (
-              <li key={d._id} className="bg-white rounded-xl p-4 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg`}
-                      style={{ background: stringToColor(d.name) }}
-                    >
-                      {d.name ? d.name.trim()[0].toUpperCase() : 'D'}
+      {/* Main Content - Scrollable */}
+      <div className="px-4 py-4 pb-24">
+        {/* Available Doctors Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><UserPlus /> Available Doctors</h2>
+          {doctors.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">No therapists available.</div>
+          ) : (
+            <ul className="space-y-4">
+              {doctors.map(doc => (
+                <li key={doc._id} className="flex items-center justify-between p-4 bg-gray-100 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center text-xl font-bold text-blue-700 shadow">
+                      {doc.name ? doc.name[0].toUpperCase() : '?'}
                     </div>
-                    <div className="ml-3">
-                      <div className="font-semibold">{d.name}</div>
-                      <div className="text-xs text-gray-600">{d.specialty || ''}</div>
-                      <div className="text-xs text-gray-400">{d.status || ''}</div>
-                      {d.bookedBy === userId && d.bookingInfo && (
-                        <div className="text-xs text-green-600 mt-1">Booked by you on {d.bookingInfo.date}</div>
-                      )}
-                      <div className="text-xs text-gray-400 mt-1">Created: {d.createdAt ? new Date(d.createdAt).toLocaleString() : ''}</div>
-                      {d.approvedAt && (
-                        <div className="text-xs text-blue-500">Approved: {new Date(d.approvedAt).toLocaleString()}</div>
+                    <div>
+                      <div className="font-semibold text-lg">{doc.name}</div>
+                      <div className="text-xs text-green-600 font-semibold mb-1">
+                        {doc.status === 'approved' ? 'Approved' : doc.status || 'Available'}
+                      </div>
+                      <div className="text-sm text-gray-500">{doc.specialty}</div>
+                      {doc.bookedBy === userId && (
+                        <div className="text-xs text-blue-600 mt-1">✓ Booked by you</div>
                       )}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
                   <button
-                    className={`px-2 py-1 rounded text-xs ${d.bookedBy === userId ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-                    onClick={() => handleBook(d)}
-                    disabled={(!d.bookedBy && bookedDoctorId && bookedDoctorId !== d._id)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${doc.bookedBy === userId ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'} cursor-pointer`}
+                    onClick={() => handleBookDoctor(doc)}
+                    style={{ cursor: 'pointer' }}
                   >
-                    {d.bookedBy === userId ? 'Unbook' : 'Book'}
+                    {doc.bookedBy === userId ? <UserCheck /> : <UserPlus />}
+                    {doc.bookedBy === userId ? 'Unbook' : 'Book'}
                   </button>
-                  {!d.seeded && (
-                    <button
-                      className="ml-1 p-1 rounded-full hover:bg-gray-200"
-                      title="Delete doctor"
-                      onClick={e => { e.stopPropagation(); handleDeleteDoctor(d._id); }}
-                      aria-label="Delete doctor"
-                    >
-                      <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-                    </button>
-                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Add Condition Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <button
+            className="w-full py-3 rounded-lg font-semibold bg-purple-600 text-white flex items-center justify-center gap-2 mb-2 cursor-pointer"
+            onClick={() => setConditionModalOpen(true)}
+            style={{ cursor: 'pointer' }}
+          >
+            <PlusCircle /> Add Condition
+          </button>
+          {conditionModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConditionModalOpen(false)}>
+              <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setConditionModalOpen(false)} aria-label="Close"><UserX /></button>
+                <h2 className="text-xl font-bold mb-2 text-purple-700">Add Condition</h2>
+                <input type="text" placeholder="Username" className="border rounded-lg px-3 py-2" value={user.username} onChange={e => setUser(u => ({ ...u, username: e.target.value }))} />
+                <input type="text" placeholder="Condition" className="border rounded-lg px-3 py-2" value={condition} onChange={e => setCondition(e.target.value)} />
+                <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-4 py-2 font-semibold mt-2" onClick={handleAddCondition}>Suggest Treatment</button>
+                {suggestedTreatment && <div className="mt-2 text-green-600 font-semibold">Suggested: {suggestedTreatment}</div>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Current Therapy Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><ClipboardCheck /> Current Therapy</h2>
+          {currentTherapy ? (
+            <div className="p-4 bg-gray-100 rounded-xl">
+              <div className="font-semibold text-lg">{currentTherapy.suggestedTreatment}</div>
+              <div className="text-sm text-gray-500">Added: {currentTherapy.dateAdded}</div>
+            </div>
+          ) : <div className="text-gray-400">No therapy added yet.</div>}
+        </div>
+
+        {/* Therapy Tracker Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Activity /> Therapy Tracker</h2>
+          {tracker ? (
+            <div className="p-4 bg-gray-100 rounded-xl">
+              <div className="font-semibold">Username: {tracker.username}</div>
+              <div className="font-semibold">Doctor: {tracker.doctorName}</div>
+              <div className="font-semibold">Treatment: {tracker.suggestedTreatment}</div>
+              <div className="font-semibold">Sessions Required: {tracker.sessionsRequired}</div>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-full h-4 bg-gray-300 rounded-full">
+                  <div className={`h-4 rounded-full ${getProgressColor(tracker.progress)}`} style={{ width: `${tracker.progress}%` }}></div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Add Doctor Modal */}
-        {showForm && (
-          <div className="fixed inset-0 px-6 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowForm(false)}>
-            <form
-              className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4 relative animate-fadeIn border border-gray-100"
-              onClick={e => e.stopPropagation()}
-              onSubmit={handleSubmit}
-            >
-              <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowForm(false)} aria-label="Close">&times;</button>
-              <h3 className="font-semibold text-base mb-2">Add Doctor</h3>
-              <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border-none bg-gray-50 shadow-xl rounded px-2 py-1 w-full mb-2 text-sm" />
-              <input name="specialty" value={form.specialty} onChange={handleChange} placeholder="Specialty" className="border-none bg-gray-50 shadow-xl rounded px-2 py-1 w-full mb-2 text-sm" />
-              <div className="flex justify-end space-x-2 mt-2">
-                <button type="button" className="px-3 py-1 rounded bg-gray-200 text-xs" onClick={() => setShowForm(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="px-3 py-1 rounded bg-blue-500 text-white text-xs">
-                  Add
-                </button>
+                <span className="font-semibold text-xs">{tracker.progress}%</span>
               </div>
-            </form>
-          </div>
-        )}
-
-        {/* Add Condition Modal */}
-        {showUserForm && (
-          <div className="fixed inset-0 px-6 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowUserForm(false)}>
-            <form
-              className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4 relative animate-fadeIn border border-gray-100"
-              onClick={e => e.stopPropagation()}
-              onSubmit={e => {
-                e.preventDefault();
-                if (!userCondition.trim()) return;
-                setRecommendedTherapy(recommendedTherapy);
-                setTherapyTracker(tracker => ({
-                  ...tracker,
-                  therapy: recommendedTherapy,
-                  date: new Date().toISOString().slice(0,10),
-                  streak: (tracker?.streak || 0),
-                  longestStreak: (tracker?.longestStreak || 0)
-                }));
-                setShowUserForm(false);
-                toast.success('Condition added successfully!');
-              }}
-            >
-              <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-black text-xl" onClick={() => setShowUserForm(false)} aria-label="Close">&times;</button>
-              <h3 className="font-semibold text-base mb-2">Add Your Condition</h3>
-              <input name="condition" value={userCondition} onChange={handleChange} placeholder="Your Condition (e.g. Anxiety, Depression)" className="border-none shadow-lg bg-gray-50 rounded px-2 py-1 w-full mb-2 text-sm" />
-              {userCondition && (
-                <div className="text-sm text-blue-600 mb-2">Recommended Therapy: <span className="font-bold">{recommendedTherapy}</span></div>
-              )}
-              <div className="flex justify-end space-x-2 mt-2">
-                <button type="button" className="px-3 py-1 rounded bg-gray-200 text-xs" onClick={() => setShowUserForm(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="px-3 py-1 rounded bg-blue-500 text-white text-xs">
-                  Add
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Cards below doctors: 2-column grid */}
-        <div className="grid grid-cols-2 gap-4 mt-2 mb-20">
-          {/* Current Therapy Card */}
-          <div className="p-4 bg-gray-50 rounded-xl shadow-lg border border-purple-100 flex flex-col justify-between">
-            <h3 className="font-bold text-purple-700 mb-1 flex items-center text-sm"><Brain className="w-4 h-4 mr-1 text-purple-500" /> Current Therapy</h3>
-            <div className="mb-1 text-base font-semibold text-gray-800">{therapyTracker?.doctor?.therapy || recommendedTherapy || ''}</div>
-            <div className="mb-1 text-xs text-gray-600">Specialty: {therapyTracker?.doctor?.specialty || ''}</div>
-            <div className="mb-1 text-xs text-gray-600">Started: {therapyTracker?.date || ''}</div>
-            <div className="mt-1 text-xs text-gray-400">Stay consistent for best results!</div>
-          </div>
-          {/* Therapy Tracker Card */}
-          <div className="p-4 bg-gray-50 rounded-xl shadow-lg border border-blue-100">
-            <h3 className="font-bold text-blue-700 mb-1 flex items-center text-sm"><BookOpen className="w-4 h-4 mr-1 text-blue-500" /> Therapy Tracker</h3>
-            <div className="mb-1 text-xs">Doctor: {therapyTracker?.doctor?.name || 'Dr. '}</div>
-            <div className="mb-1 text-xs">Date: {therapyTracker?.date || ' '}</div>
-            <div className="mb-1 text-xs">Description: {therapyTracker?.therapy || recommendedTherapy || ''}</div>
-            <div className="mb-1 text-xs">Streak: <span className="font-bold text-green-600">{therapyTracker?.streak || 0}</span> days</div>
-            <div className="mb-1 text-xs">Longest streak: <span className="font-bold text-blue-600">{therapyTracker?.longestStreak || 0}</span> days</div>
-            <div className="text-xs text-gray-500">Booked at: {therapyTracker?.bookedAt ? new Date(therapyTracker.bookedAt).toLocaleString() : ''}</div>
-          </div>
+              <div className="mt-2 font-semibold text-xs text-gray-600">Consistency: <span className={`px-2 py-1 rounded ${tracker.consistency === 'red' ? 'bg-red-200 text-red-700' : tracker.consistency === 'orange' ? 'bg-orange-200 text-orange-700' : 'bg-green-200 text-green-700'}`}>{tracker.consistency}</span></div>
+            </div>
+          ) : <div className="text-gray-400">No tracker info yet.</div>}
         </div>
       </div>
 
