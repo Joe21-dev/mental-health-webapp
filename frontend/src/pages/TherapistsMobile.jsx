@@ -105,7 +105,6 @@ export default function TherapistsMobile() {
     try {
       const isBookedByUser = doctor.bookedBy === userId;
       const newBooked = !isBookedByUser;
-      
       const response = await fetch(`${BACKEND_URL}/api/therapists/${doctor._id}/book`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -119,12 +118,9 @@ export default function TherapistsMobile() {
           } : null
         })
       });
-      
       if (!response.ok) throw new Error('Failed to update booking');
-      
       const updatedDoctor = await response.json();
       setDoctors(doctors.map(d => d._id === doctor._id ? updatedDoctor : d));
-      
       if (newBooked) {
         setSelectedDoctor(updatedDoctor);
         toast.success('Therapist booked successfully! You can now add your condition.');
@@ -141,7 +137,6 @@ export default function TherapistsMobile() {
   // Add condition
   const handleAddCondition = async () => {
     if (!user.username || !condition) return;
-    
     try {
       const treatment = `Treatment for ${condition}`;
       setSuggestedTreatment(treatment);
@@ -151,7 +146,6 @@ export default function TherapistsMobile() {
         suggestedTreatment: treatment, 
         dateAdded: new Date().toLocaleString() 
       });
-      
       // Save condition to backend
       const therapyData = {
         userId,
@@ -163,18 +157,14 @@ export default function TherapistsMobile() {
         progress: 0,
         consistency: 'red'
       };
-
       const response = await fetch(`${BACKEND_URL}/api/therapy-tracker`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(therapyData)
       });
-
       if (!response.ok) throw new Error('Failed to save condition');
-      
       const savedTracker = await response.json();
       setTracker(savedTracker);
-      
       if (selectedDoctor) {
         const response2 = await fetch(`${BACKEND_URL}/api/therapists/${selectedDoctor._id}`, {
           method: 'PUT',
@@ -188,10 +178,8 @@ export default function TherapistsMobile() {
             }]
           })
         });
-        
         if (!response2.ok) throw new Error('Failed to add condition to doctor');
       }
-      
       setConditionModalOpen(false);
       toast.success('Condition added successfully! Your therapy plan has been updated.');
     } catch (err) {
@@ -251,7 +239,7 @@ export default function TherapistsMobile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+  <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-transparent'} px-4 py-3 flex items-center justify-between lg:hidden`}>
         <button onClick={() => setMobileMenuOpen(true)}>
@@ -365,13 +353,12 @@ export default function TherapistsMobile() {
                 <li key={doc._id} className="flex items-center justify-between p-4 bg-gray-100 rounded-xl">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center text-xl font-bold text-blue-700 shadow">
-                      {doc.name ? doc.name[0].toUpperCase() : '?'}
+                      {/* Show first letter of first name, not 'Dr.' prefix */}
+                      {doc.name ? (doc.name.replace(/^Dr\.?\s*/i, '')[0] || doc.name[0]).toUpperCase() : '?'}
                     </div>
                     <div>
                       <div className="font-semibold text-lg">{doc.name}</div>
-                      <div className="text-xs text-green-600 font-semibold mb-1">
-                        {doc.status === 'approved' ? 'Approved' : doc.status || 'Available'}
-                      </div>
+                      <div className="text-xs text-green-600 font-semibold mb-1">Approved</div>
                       <div className="text-sm text-gray-500">{doc.specialty}</div>
                       {doc.bookedBy === userId && (
                         <div className="text-xs text-blue-600 mt-1">✓ Booked by you</div>
@@ -451,6 +438,7 @@ export default function TherapistsMobile() {
           })}
         </div>
       </nav>
+      <ToastContainer position="top-center" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 }
