@@ -331,6 +331,29 @@ export default function TherapistsMobile() {
 
       {/* Main Content - Scrollable */}
       <div className="px-4 py-4 pb-24">
+        {/* Add Condition Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <button
+            className="w-full py-3 rounded-lg font-semibold bg-blue-600 text-white flex items-center justify-center gap-2 mb-2 cursor-pointer"
+            onClick={() => setConditionModalOpen(true)}
+            style={{ cursor: 'pointer' }}
+          >
+            <PlusCircle /> Add Condition
+          </button>
+          {conditionModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConditionModalOpen(false)}>
+              <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setConditionModalOpen(false)} aria-label="Close"><UserX /></button>
+                <h2 className="text-xl font-bold mb-2 text-blue-700">Add Condition</h2>
+                <input type="text" placeholder="Username" className="border rounded-lg px-3 py-2" value={user.username} onChange={e => setUser(u => ({ ...u, username: e.target.value }))} />
+                <input type="text" placeholder="Condition" className="border rounded-lg px-3 py-2" value={condition} onChange={e => setCondition(e.target.value)} />
+                <button className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold mt-2" onClick={handleAddCondition}>Suggest Treatment</button>
+                {suggestedTreatment && <div className="mt-2 text-green-600 font-semibold">Suggested: {suggestedTreatment}</div>}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Available Doctors Section */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><UserPlus /> Available Doctors</h2>
@@ -369,28 +392,7 @@ export default function TherapistsMobile() {
           )}
         </div>
 
-        {/* Add Condition Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <button
-            className="w-full py-3 rounded-lg font-semibold bg-purple-600 text-white flex items-center justify-center gap-2 mb-2 cursor-pointer"
-            onClick={() => setConditionModalOpen(true)}
-            style={{ cursor: 'pointer' }}
-          >
-            <PlusCircle /> Add Condition
-          </button>
-          {conditionModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConditionModalOpen(false)}>
-              <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative animate-fadeIn border border-gray-100 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-                <button type="button" className="absolute top-3 right-3 text-gray-400 hover:text-black text-2xl" onClick={() => setConditionModalOpen(false)} aria-label="Close"><UserX /></button>
-                <h2 className="text-xl font-bold mb-2 text-purple-700">Add Condition</h2>
-                <input type="text" placeholder="Username" className="border rounded-lg px-3 py-2" value={user.username} onChange={e => setUser(u => ({ ...u, username: e.target.value }))} />
-                <input type="text" placeholder="Condition" className="border rounded-lg px-3 py-2" value={condition} onChange={e => setCondition(e.target.value)} />
-                <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-4 py-2 font-semibold mt-2" onClick={handleAddCondition}>Suggest Treatment</button>
-                {suggestedTreatment && <div className="mt-2 text-green-600 font-semibold">Suggested: {suggestedTreatment}</div>}
-              </div>
-            </div>
-          )}
-        </div>
+        
 
         {/* Current Therapy Section */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">

@@ -11,6 +11,7 @@ import Scheduler from './pages/Scheduler';
 import About from './pages/About';
 import './App.css';
 import GlobalResourcePlayer from './GlobalResourcePlayer';
+import DoctorSession from './pages/DoctorSession';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 1024);
@@ -38,6 +39,7 @@ function App() {
           <Route path="/platform/chat" element={<Chat />} />
           <Route path="/platform/resources" element={<ResourcesRouteWrapper />} />
           <Route path="/platform/scheduler" element={<Scheduler />} />
+          <Route path="/platform/doctor-session" element={<DoctorSession />} />
           <Route path="/about" element={<About />} />
           {/* Add other /platform/... routes as needed */}
         </Routes>

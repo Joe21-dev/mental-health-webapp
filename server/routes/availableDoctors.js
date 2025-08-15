@@ -1,7 +1,6 @@
-import express from 'express';
-import AvailableDoctor from '../models/AvailableDoctor.js';
-
+const express = require('express');
 const router = express.Router();
+const AvailableDoctor = require('../models/AvailableDoctor');
 
 // Get all available doctors
 router.get('/', async (req, res) => {
@@ -44,4 +43,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;

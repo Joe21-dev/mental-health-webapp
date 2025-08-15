@@ -39,10 +39,24 @@ router.put('/:id/book', async (req, res) => {
     if (!doctor) return res.status(404).json({ error: 'Not found' });
     doctor.booked = req.body.booked;
     doctor.bookingInfo = req.body.bookingInfo || null;
+    doctor.bookedBy = req.body.booked ? (req.body.bookedBy || doctor.bookedBy) : null;
     await doctor.save();
     res.json(doctor);
   } catch (err) {
     res.status(400).json({ error: 'Failed to update booking' });
+  }
+});
+
+// Get the doctor booked by a specific user
+router.get('/booked/by-user/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const doctor = await Doctor.findOne({ booked: true, bookedBy: userId });
+    if (!doctor) return res.status(404).json({ error: 'No booked doctor found for user' });
+    res.json(doctor);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch booked doctor' });
   }
 });
 
